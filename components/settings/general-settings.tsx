@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { UsageDashboard } from './usage-dashboard';
+import { PERMISSIONS, roleCan } from '@/lib/accounts/policy';
+import { useAccount } from '@/lib/accounts/use-account';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -99,10 +101,16 @@ export function GeneralSettings() {
       ? t('settings.clearCacheConfirmItems').split('、')
       : t('settings.clearCacheConfirmItems').split(', ');
 
+  const accountState = useAccount();
+  const showUsage =
+    !accountState.enabled ||
+    (!accountState.viewer && roleCan(accountState.account?.role, PERMISSIONS.admin));
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Usage statistics dashboard */}
-      <UsageDashboard />
+      {/* Usage statistics dashboard. Fork-only (FORK_CHANGES.md): with accounts
+          on it is the admin's; its data route refuses everyone else. */}
+      {showUsage && <UsageDashboard />}
 
       {/* Danger Zone - Clear Cache */}
       <div className="relative rounded-xl border border-destructive/30 bg-destructive/[0.03] dark:bg-destructive/[0.06] overflow-hidden">
