@@ -22,6 +22,8 @@ import {
 } from './model-services';
 import { ServerSettingsGate } from './server-settings';
 import type { SettingsSection } from '@/lib/types/settings';
+import { PERMISSIONS, roleCan } from '@/lib/accounts/policy';
+import { useAccount } from '@/lib/accounts/use-account';
 
 export { SERVICE_TAB_LABELS, type ServiceTab } from './model-services';
 
@@ -63,14 +65,22 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   const serviceTabs = sections
     ? SERVICE_TABS.filter((tab) => sections.modelServices.includes(TAB_CAPABILITY[tab]))
     : SERVICE_TABS;
+  // Fork-only (FORK_CHANGES.md): with accounts on, model and control settings
+  // are the admin's; everyone else keeps only their own General settings.
+  const accountState = useAccount();
+  const personalOnly =
+    accountState.enabled &&
+    (accountState.viewer || !roleCan(accountState.account?.role, PERMISSIONS.admin));
   const listed = (id: SettingsSection) =>
-    id === 'skills'
-      ? skillsAvailable
-      : id === 'token-plan'
-        ? !sections || sections.tokenPlan
-        : id === 'model-services'
-          ? serviceTabs.length > 0
-          : true;
+    personalOnly
+      ? id === 'general'
+      : id === 'skills'
+        ? skillsAvailable
+        : id === 'token-plan'
+          ? !sections || sections.tokenPlan
+          : id === 'model-services'
+            ? serviceTabs.length > 0
+            : true;
   const nav = NAV.filter(({ id }) => listed(id));
   // A section that is not listed (asked for, or the default) lands on the first one.
   const activeSection = listed(requestedSection) ? requestedSection : nav[0].id;

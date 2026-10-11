@@ -18,6 +18,8 @@ import {
   saveWorkspaceModelConfig,
   WorkspaceConfigConflictError,
 } from '@/lib/persistence/workspace-model-config';
+import { PERMISSIONS } from '@/lib/accounts/policy';
+import { refuseWithout } from '@/lib/server/accounts/guard';
 import { withRequestOwner } from '@/lib/server/identity/with-owner';
 import {
   importModelSettings,
@@ -54,7 +56,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return withRequestOwner(req, async ({ ownerId }, headers) => {
+  return withRequestOwner(req, async (principal, headers) => {
+    // Fork-only (FORK_CHANGES.md): model settings are admin-only when accounts are on.
+    const refused = refuseWithout(principal, PERMISSIONS.admin, headers);
+    if (refused) return refused;
+    const { ownerId } = principal;
     const queryable = (await getServerPersistenceProvider(process.env.DATABASE_URL ?? '')).pool;
     try {
       for (let attempt = 1; ; attempt++) {

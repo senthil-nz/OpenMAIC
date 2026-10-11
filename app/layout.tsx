@@ -42,6 +42,7 @@ export const metadata: Metadata = {
   title: 'OpenMAIC',
   description:
     'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
+  other: { google: 'notranslate' },
 };
 
 export default function RootLayout({
@@ -50,7 +51,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    // translate="no" / notranslate: browser page translators rewrite text nodes
+    // under React, which then throws NotFoundError (insertBefore/removeChild)
+    // on the next update. The interface has its own language switcher.
+    <html lang="en" translate="no" className="notranslate" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

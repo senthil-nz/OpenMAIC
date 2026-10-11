@@ -16,6 +16,7 @@
  * identity lock first like every owner write (`./owner-merges.ts`), and a
  * claim moves the row to the account unless the account has one already.
  */
+import { settingsOwnerKey } from '@/lib/accounts/policy';
 import type { Queryable } from '@openmaic/storage/document/pg';
 import { applySchemaMigrations, type SchemaMigrationSet } from '@openmaic/storage/pg-migrations';
 import { encodeJson } from '@openmaic/storage/pg-json';
@@ -125,8 +126,10 @@ function openRow(row: Row): WorkspaceModelConfig {
 
 export async function readWorkspaceModelConfig(
   queryable: Queryable,
-  ownerId: string,
+  requestOwnerId: string,
 ): Promise<WorkspaceModelConfig | null> {
+  // Fork-only (FORK_CHANGES.md): one site-wide record when accounts are on.
+  const ownerId = settingsOwnerKey(requestOwnerId);
   const result = await queryable.query<Row & Record<string, unknown>>(
     'SELECT config, secrets, revision FROM workspace_model_config WHERE owner_id = $1',
     [ownerId],
@@ -142,12 +145,14 @@ export async function readWorkspaceModelConfig(
  */
 export async function saveWorkspaceModelConfig(
   queryable: ConnectableQueryable,
-  ownerId: string,
+  requestOwnerId: string,
   next: ModelConfigFile,
   expectedRevision: number | null,
   /** Providers whose stored key is removed even if it can no longer be opened. */
   { clearKeys = [] }: { clearKeys?: readonly string[] } = {},
 ): Promise<number> {
+  // Fork-only (FORK_CHANGES.md): one site-wide record when accounts are on.
+  const ownerId = settingsOwnerKey(requestOwnerId);
   const { config, issues } = checkModelConfigShape(next);
   if (!config) throw new WorkspaceConfigInvalidError(issues);
   const deploymentOnly = (['lock', 'allowUserKeys'] as const).filter(

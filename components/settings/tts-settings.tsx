@@ -329,7 +329,9 @@ export function TTSSettings({ view, apply, entry }: ServicePanelProps) {
                 ) : (
                   <Volume2 className="h-4 w-4" />
                 )}
-                {t('settings.testTTS')}
+                {/* A span, not a bare text node: page translators replace text
+                    nodes, and React then cannot swap the icon in before it. */}
+                <span>{t('settings.testTTS')}</span>
               </Button>
             </div>
           </div>
