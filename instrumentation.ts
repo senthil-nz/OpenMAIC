@@ -44,6 +44,11 @@ export async function register(): Promise<void> {
     warnIfAccessCodeIsUnset(process.env.ACCESS_CODE);
   }
 
+  // Fork-only (FORK_CHANGES.md): the first admin account, created in the
+  // background from the environment when accounts are on and none exists.
+  const { seedFirstAdmin } = await import('@/lib/server/accounts/bootstrap');
+  void seedFirstAdmin();
+
   // Every store's recorded schema versions, read in the background: a database
   // this release must not run against (upgraded by a newer release) stops the
   // process here rather than failing every request that touches the store
@@ -266,6 +271,14 @@ async function validateBootConfiguration(): Promise<void> {
   //
   // A registration that throws stops the process too, reported as a startup
   // failure with its stack (it is host code, not a setting).
+  //
+  // Fork-only (FORK_CHANGES.md): accounts with roles, registered through that
+  // same hook. Off unless OPENMAIC_ACCOUNTS_ENABLED=true.
+  const { assertAccountsConfiguration, registerAccountAuthentication } =
+    await import('@/lib/server/accounts/bootstrap');
+  runConfigurationCheck(assertAccountsConfiguration);
+  await registerAccountAuthentication();
+
   const { validateOwnerIdentityConfiguration } = await import('@/lib/server/identity/registry');
   runConfigurationCheck(validateOwnerIdentityConfiguration);
 

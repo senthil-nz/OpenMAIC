@@ -15,6 +15,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | — | README fork notice and this change log | — | This PR |
 | — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet |
 | — | Page translators no longer crash the interface | — | On branch, no PR yet |
+| — | Accounts and roles, stage 2: login | — | On branch, no PR yet |
 
 ## Merged changes
 
@@ -52,6 +53,17 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 - **What:** the page is marked `translate="no"` / `notranslate` so a browser's page translator leaves the React interface alone, and the Test TTS button label is wrapped in a `<span>`. Before, translating the page caused "NotFoundError: Failed to execute 'insertBefore' on 'Node'" in settings.
 - **Files:** `app/layout.tsx`, `components/settings/tts-settings.tsx`
 - **Likely conflicts:** upstream edits to the `<html>` tag or `metadata` in `app/layout.tsx`. Keep the `translate`/`notranslate` attributes and the `google: 'notranslate'` entry.
+
+### Accounts and roles, stage 2: login
+
+- **Branch:** `claude/project-thread-tz7wg0`, pushed but no PR yet. Plan: https://claude.ai/code/artifact/6d3bec58-fb37-4409-b635-915635400797
+- **What:** username and password accounts with three roles (student, teacher, admin), stored in PostgreSQL, plugged in through upstream's documented owner auth hook. Login page, logout, user menu, first admin from the environment. Off unless `OPENMAIC_ACCOUNTS_ENABLED=true`, so default behaviour matches upstream. Nothing is restricted yet; enforcement is stage 3.
+- **New environment variables:** `OPENMAIC_ACCOUNTS_ENABLED`, `OPENMAIC_SESSION_SECRET` (32+ characters, required when enabled), `OPENMAIC_ADMIN_USERNAME`, `OPENMAIC_ADMIN_PASSWORD`.
+- **New database tables:** `account_users`, `account_sessions` (migration store `fork-accounts`). No upstream table is changed.
+- **Files added (fork-owned, no upstream counterpart):** `lib/accounts/policy.ts` (the permission table), `lib/accounts/strings.ts`, `lib/accounts/use-account.ts`, `lib/server/accounts/*.ts`, `app/api/auth/{login,logout,me}/route.ts`, `app/login/page.tsx`, `components/accounts/account-menu.tsx`, `tests/accounts/accounts.test.ts`
+- **Upstream files changed:** `instrumentation.ts` (two marked blocks: registration before owner identity validation, and the first-admin seed), `app/page.tsx` (one import and one `<AccountMenu />` in the top-right pill), `.env.example` (one block at the end).
+- **Likely conflicts:** upstream edits near the owner identity validation in `instrumentation.ts`, or to the top-right pill in `app/page.tsx`. Keep the blocks marked "Fork-only".
+- **Depends on upstream contracts:** `configureOwnerAuthentication` and `OwnerAuthMethod` in `lib/server/identity/`, `applySchemaMigrations` in `@openmaic/storage/pg-migrations`, `POST /api/identity/claim`. If upstream changes these, `lib/server/accounts/auth-method.ts` and `store.ts` need the matching change.
 
 ### Local-only configuration (not committed)
 
