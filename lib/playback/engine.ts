@@ -834,15 +834,16 @@ export class PlaybackEngine {
     }
     if (!voiceFound) {
       // No usable voice configured — detect text language so the browser
-      // auto-selects an appropriate voice. For Vietnamese additionally bind an
-      // installed vi voice when one exists, since browsers otherwise fall back
-      // to an English voice reading Vietnamese text.
+      // auto-selects an appropriate voice. For Vietnamese and Tamil additionally
+      // bind an installed voice of that language when one exists, since browsers
+      // otherwise fall back to an English voice reading the text.
       utterance.lang = detectSpeechLang(chunkText);
-      if (utterance.lang === 'vi-VN') {
-        const viVoice = voices.find((v) => v.lang?.toLowerCase().startsWith('vi'));
-        if (viVoice) {
-          utterance.voice = viVoice;
-          utterance.lang = viVoice.lang;
+      if (utterance.lang === 'vi-VN' || utterance.lang === 'ta-IN') {
+        const prefix = utterance.lang.slice(0, 2);
+        const langVoice = voices.find((v) => v.lang?.toLowerCase().startsWith(prefix));
+        if (langVoice) {
+          utterance.voice = langVoice;
+          utterance.lang = langVoice.lang;
         }
       }
     }

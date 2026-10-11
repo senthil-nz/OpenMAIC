@@ -209,6 +209,11 @@ describe('getVideoExportCoverLabels', () => {
       pblCtaPrompt: 'هل تريد استكشاف التعلم القائم على المشاريع؟',
       ctaVisit: 'تفضل بزيارة',
     },
+    'ta-IN': {
+      quizCtaPrompt: 'ஊடாடும் வினாடி வினாவை முயன்று பார்க்க விருப்பமா?',
+      pblCtaPrompt: 'திட்ட அடிப்படையிலான கற்றலை ஆராய விருப்பமா?',
+      ctaVisit: 'பார்வையிடுக',
+    },
   };
 
   it.each(Object.entries(expectedCtaLabels) as Array<[Locale, (typeof expectedCtaLabels)[Locale]]>)(
