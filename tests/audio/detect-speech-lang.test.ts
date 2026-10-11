@@ -17,6 +17,13 @@ describe('detectSpeechLang', () => {
     expect(detectSpeechLang('Anh ăn cơm với cá và canh chua')).toBe('vi-VN');
   });
 
+  it('detects Tamil, including narration that keeps English terms', () => {
+    expect(detectSpeechLang('ஒளிச்சேர்க்கை என்பது தாவரங்கள் வளரும் முறை')).toBe('ta-IN');
+    expect(detectSpeechLang('Python-இல் ஒரு function எழுதுவது எப்படி என்று பார்ப்போம்')).toBe(
+      'ta-IN',
+    );
+  });
+
   it('falls back to en-US for plain English', () => {
     expect(detectSpeechLang('Photosynthesis is how plants grow')).toBe('en-US');
     expect(detectSpeechLang('OK.')).toBe('en-US');

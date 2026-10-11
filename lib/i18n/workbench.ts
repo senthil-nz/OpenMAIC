@@ -9,11 +9,11 @@
  * synchronously.
  *
  * Two locales are written here — `workbenchEn` is the shape every other locale
- * is checked against, `workbenchZh` is its Chinese twin — and the remaining ten
+ * is checked against, `workbenchZh` is its Chinese twin — and the remaining eleven
  * are JSON overlays in `workbench-locales/`, merged by `workbenchResourceFor`
  * with English (or, for `zh-TW`, Simplified) underneath. So an untranslated key
  * degrades to a readable sentence rather than to `workbench.tool.label.x`, and
- * `tests/workbench/workbench-i18n.test.ts` holds the ten to the shape.
+ * `tests/workbench/workbench-i18n.test.ts` holds the eleven to the shape.
  */
 import workbenchArSA from './workbench-locales/ar-SA.json' with { type: 'json' };
 import workbenchDeDE from './workbench-locales/de-DE.json' with { type: 'json' };
@@ -23,6 +23,7 @@ import workbenchJaJP from './workbench-locales/ja-JP.json' with { type: 'json' }
 import workbenchKoKR from './workbench-locales/ko-KR.json' with { type: 'json' };
 import workbenchPtBR from './workbench-locales/pt-BR.json' with { type: 'json' };
 import workbenchRuRU from './workbench-locales/ru-RU.json' with { type: 'json' };
+import workbenchTaIN from './workbench-locales/ta-IN.json' with { type: 'json' };
 import workbenchViVN from './workbench-locales/vi-VN.json' with { type: 'json' };
 import workbenchZhTW from './workbench-locales/zh-TW.json' with { type: 'json' };
 
@@ -675,7 +676,7 @@ function readPath(value: unknown, path: readonly string[]): unknown {
 type WorkbenchResource = Record<string, unknown>;
 
 /**
- * The other ten locales.
+ * The other eleven locales.
  *
  * `workbenchEn` is the shape and `workbenchZh` is its Chinese twin; every other
  * locale is a JSON overlay on one of those two, so a key that a locale has not
@@ -694,6 +695,7 @@ const localeOverrides: Record<string, WorkbenchResource> = {
   'ru-RU': workbenchRuRU,
   'ar-SA': workbenchArSA,
   'vi-VN': workbenchViVN,
+  'ta-IN': workbenchTaIN,
 };
 
 function isRecord(value: unknown): value is WorkbenchResource {
