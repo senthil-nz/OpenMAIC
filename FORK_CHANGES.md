@@ -12,11 +12,11 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | # | Change | Merged | Status |
 |---|--------|--------|--------|
 | [#1](https://github.com/senthil-nz/OpenMAIC/pull/1) | Tamil (`ta-IN`) interface locale | 2026-10-11 | Merged |
-| — | README fork notice and this change log | — | This PR |
-| — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet |
-| — | Page translators no longer crash the interface | — | On branch, no PR yet |
-| — | Accounts and roles, stage 2: login | — | On branch, no PR yet |
-| — | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | — | On branch, no PR yet |
+| [#2](https://github.com/senthil-nz/OpenMAIC/pull/2) | README fork notice and this change log | 2026-10-11 | Merged |
+| [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Outline prompt no longer adds a second language to English courses | — | Open, awaiting merge |
+| [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Page translators no longer crash the interface | — | Open, awaiting merge |
+| [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stage 2: login | — | Open, awaiting merge |
+| [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | — | Open, awaiting merge |
 
 ## Merged changes
 
@@ -41,23 +41,25 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 
 ## Unmerged work
 
+Everything in this section is in pull request [#3](https://github.com/senthil-nz/OpenMAIC/pull/3). When it is merged, move these entries under "Merged changes" and fill in the merge date.
+
 ### Outline prompt: no second language for English courses
 
-- **Branch:** `claude/project-thread-tz7wg0` (commit `d15d030`), pushed but no PR yet.
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/3 (branch `claude/project-thread-tz7wg0`, commit `d15d030`), open.
 - **What:** the "show emerging tech terms bilingually" rule now applies only when the teaching language is not English, and the language directive may not add a language the user did not ask for.
 - **Files:** `lib/prompts/templates/interactive-outlines/system.md`, `packages/@openmaic/generation/templates/requirements-to-outlines/system.md`, `packages/@openmaic/generation/test/__snapshots__/outline-prompt.test.ts.snap`
 - **Likely conflicts:** upstream edits to either prompt template; regenerate the snapshot after merging.
 
 ### Page translators no longer crash the interface
 
-- **Branch:** `claude/project-thread-tz7wg0`, pushed but no PR yet.
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/3 (branch `claude/project-thread-tz7wg0`), open.
 - **What:** the page is marked `translate="no"` / `notranslate` so a browser's page translator leaves the React interface alone, and the Test TTS button label is wrapped in a `<span>`. Before, translating the page caused "NotFoundError: Failed to execute 'insertBefore' on 'Node'" in settings.
 - **Files:** `app/layout.tsx`, `components/settings/tts-settings.tsx`
 - **Likely conflicts:** upstream edits to the `<html>` tag or `metadata` in `app/layout.tsx`. Keep the `translate`/`notranslate` attributes and the `google: 'notranslate'` entry.
 
 ### Accounts and roles, stage 2: login
 
-- **Branch:** `claude/project-thread-tz7wg0`, pushed but no PR yet. Plan: https://claude.ai/code/artifact/6d3bec58-fb37-4409-b635-915635400797
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/3 (branch `claude/project-thread-tz7wg0`, commit `e90ef7a`), open. Plan: https://claude.ai/code/artifact/6d3bec58-fb37-4409-b635-915635400797
 - **What:** username and password accounts with three roles (student, teacher, admin), stored in PostgreSQL, plugged in through upstream's documented owner auth hook. Login page, logout, user menu, first admin from the environment. Off unless `OPENMAIC_ACCOUNTS_ENABLED=true`, so default behaviour matches upstream. Nothing is restricted yet; enforcement is stage 3.
 - **New environment variables:** `OPENMAIC_ACCOUNTS_ENABLED`, `OPENMAIC_SESSION_SECRET` (32+ characters, required when enabled), `OPENMAIC_ADMIN_USERNAME`, `OPENMAIC_ADMIN_PASSWORD`.
 - **New database tables:** `account_users`, `account_sessions` (migration store `fork-accounts`). No upstream table is changed.
@@ -68,7 +70,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 
 ### Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode
 
-- **Branch:** `claude/project-thread-tz7wg0`, pushed but no PR yet.
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/3 (branch `claude/project-thread-tz7wg0`), open.
 - **What:**
   - *Enforcement (stage 3).* Every request passes an access gate in `middleware.ts` that reads the role from the signed session cookie and applies one rule table, `lib/accounts/route-policy.ts`. An API route missing from the table is admin-only. Guests cannot create, generate, chat or configure; students view and take part; teachers create and publish; admins also configure models and manage users. Model settings are one site-wide record (`site:settings`) instead of one per owner.
   - *Public courses and catalogue (stage 4).* A course that is not public can be opened only by a logged-in account. `GET /api/courses` and a catalogue on the home page list the courses the visitor may open; owners and admins get a public/private switch.
