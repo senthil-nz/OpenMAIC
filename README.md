@@ -14,6 +14,7 @@
 > [!NOTE]
 > **This is a fork** of [THU-MAIC/OpenMAIC](https://github.com/THU-MAIC/OpenMAIC). It adds a Tamil (தமிழ், `ta-IN`) interface locale with Tamil browser narration.
 > Every fork-only change, the files it touches and how to resync with upstream are listed in [FORK_CHANGES.md](./FORK_CHANGES.md).
+> Every PR into this fork must add or update its entry in FORK_CHANGES.md in the same PR.
 <!-- fork-notice:end -->
 
 <p align="center">

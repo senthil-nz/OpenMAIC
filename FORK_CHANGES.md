@@ -7,12 +7,14 @@ This file lists every change that exists only in the fork, so a resync with upst
 
 All changes here are fork-only and are not sent upstream. Add a row to the table and a section below each time a fork PR is merged. If upstream later ships an equivalent change, keep upstream's version during the resync and drop the entry.
 
+**Rule:** every PR into this fork's `main` must add or update its own entry here (summary row and section) in the same PR. When an entry's PR merges, move it from Unmerged work to Merged changes with the PR link, merge date and merge commit.
+
 ## Summary
 
 | # | Change | Merged | Status |
 |---|--------|--------|--------|
 | [#1](https://github.com/senthil-nz/OpenMAIC/pull/1) | Tamil (`ta-IN`) interface locale | 2026-10-11 | Merged |
-| — | README fork notice and this change log | — | This PR |
+| [#2](https://github.com/senthil-nz/OpenMAIC/pull/2) | README fork notice and this change log | 2026-10-11 | Merged |
 | — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet |
 
 ## Merged changes
@@ -30,8 +32,9 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
   - `lib/playback/engine.ts`: the Vietnamese voice-binding block was generalised to Vietnamese and Tamil.
   - README locale lists.
 
-### README fork notice and this file
+### #2 README fork notice and this file
 
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/2 (merge commit `4f22e62`, change commits `607332f`, `7d39444`); the rule that every PR updates this file was added in a follow-up PR.
 - **What:** a short notice near the top of `README.md` that says this is a fork and links here, plus this file.
 - **Files:** `README.md` (one block between `<!-- fork-notice:start -->` and `<!-- fork-notice:end -->`), `FORK_CHANGES.md`
 - **Likely conflicts:** upstream edits to the README header. Keep the marked block as it is.
