@@ -10,12 +10,13 @@ import {
   nodePostgresTransaction,
   type ConnectableQueryable,
 } from '@openmaic/storage/server/reference';
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 
 import { validateAppScene, validateAppStage } from '@/lib/document-store/validators';
 import { configuredLazyAssetByteStore } from '@/lib/persistence/asset-byte-store';
 import { resolveAssetPendingTtlMs } from '@/lib/persistence/asset-pending-ttl';
 import { resolveAssetQuotaBytes } from '@/lib/persistence/asset-quota';
+import { createDatabasePool } from '@/lib/persistence/embedded-database';
 import { ensureLegacyClassroomImportSchema } from '@/lib/persistence/legacy-classroom-imports';
 import { ensureOwnerMaterialSchema } from '@/lib/persistence/owner-materials';
 import { fenceOwnerWrite } from '@/lib/persistence/owner-merges';
@@ -164,7 +165,8 @@ async function createServerPersistenceProvider(
  */
 export function getServerPersistenceProvider(
   connectionString: string,
-  poolFactory: PersistencePoolFactory = (value) => new Pool({ connectionString: value }),
+  // Fork-only (FORK_CHANGES.md): `pglite:` opens the embedded viewer database.
+  poolFactory: PersistencePoolFactory = (value) => createDatabasePool(value),
 ): Promise<ServerPersistenceProvider> {
   const key = connectionString.trim();
   if (providerState.providerPromise && providerState.connectionString === key) {
