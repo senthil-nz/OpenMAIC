@@ -5,15 +5,15 @@ This file lists every change that exists only in the fork, so a resync with upst
 
 **Last synced with upstream:** `7d324aa` (upstream #1871, 2026-10-10).
 
-Add a row to the table and a section below each time a fork PR is merged. Remove an entry once upstream has an equivalent change.
+All changes here are fork-only and are not sent upstream. Add a row to the table and a section below each time a fork PR is merged. If upstream later ships an equivalent change, keep upstream's version during the resync and drop the entry.
 
 ## Summary
 
-| # | Change | Merged | Status | Upstreamable |
-|---|--------|--------|--------|--------------|
-| [#1](https://github.com/senthil-nz/OpenMAIC/pull/1) | Tamil (`ta-IN`) interface locale | 2026-10-11 | Merged | Yes |
-| — | README fork notice and this change log | — | This PR | No (fork only) |
-| — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet | Yes |
+| # | Change | Merged | Status |
+|---|--------|--------|--------|
+| [#1](https://github.com/senthil-nz/OpenMAIC/pull/1) | Tamil (`ta-IN`) interface locale | 2026-10-11 | Merged |
+| — | README fork notice and this change log | — | This PR |
+| — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet |
 
 ## Merged changes
 
