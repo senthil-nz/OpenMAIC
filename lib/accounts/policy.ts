@@ -62,6 +62,11 @@ export function roleCan(role: AccountRole | null | undefined, permission: Permis
 /** Environment switch: accounts are off unless this is `true` or `1`. */
 export const ACCOUNTS_ENABLED_ENV = 'OPENMAIC_ACCOUNTS_ENABLED';
 
+export function accountsEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  const value = env[ACCOUNTS_ENABLED_ENV]?.trim().toLowerCase();
+  return value === 'true' || value === '1';
+}
+
 /** The account as the browser sees it. Never carries a credential. */
 export interface AccountSummary {
   readonly id: string;
@@ -73,3 +78,13 @@ export interface AccountSummary {
 export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,31}$/;
 export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 200;
+
+/**
+ * With accounts on, model settings are one site-wide record that only an
+ * admin may change, instead of one per owner: this is the key they are stored
+ * under. Without accounts the owner's own key is used, as upstream does.
+ */
+export const SITE_SETTINGS_OWNER = 'site:settings';
+export function settingsOwnerKey(ownerId: string): string {
+  return accountsEnabled() ? SITE_SETTINGS_OWNER : ownerId;
+}

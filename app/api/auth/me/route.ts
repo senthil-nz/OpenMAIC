@@ -6,6 +6,7 @@
  * presenting it (owner-scoped routes refuse an unusable cookie with 401).
  */
 import type { AccountSummary } from '@/lib/accounts/policy';
+import { viewerModeEnabled } from '@/lib/accounts/route-policy';
 import { accountFromCookieHeader } from '@/lib/server/accounts/auth-method';
 import { accountsEnabled } from '@/lib/server/accounts/bootstrap';
 import { sessionClearCookie } from '@/lib/server/accounts/session-token';
@@ -16,12 +17,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  if (!accountsEnabled()) return apiSuccess({ enabled: false, account: null });
+  if (!accountsEnabled()) return apiSuccess({ enabled: false, viewer: false, account: null });
   const user = await accountFromCookieHeader(request.headers.get('cookie'));
   const account: AccountSummary | null = user
     ? { id: user.id, username: user.username, displayName: user.displayName, role: user.role }
     : null;
-  const response = apiSuccess({ enabled: true, account });
+  const response = apiSuccess({ enabled: true, viewer: viewerModeEnabled(), account });
   response.headers.set('Cache-Control', 'no-store');
   if (user === null) {
     response.headers.append('Set-Cookie', sessionClearCookie(cookiesAreSecure()));

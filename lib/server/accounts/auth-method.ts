@@ -13,7 +13,7 @@ import type {
   OwnerAuthRequest,
 } from '@/lib/server/identity/types';
 
-import { readSessionCookie, sessionSecret, verifySessionToken } from './session-token';
+import { readSessionCookie, readSessionToken, sessionSecret } from './session-token';
 import { ACCOUNT_OWNER_PREFIX, accountOwnerId, findSessionUser, type AccountUser } from './store';
 
 /** The account a request's session cookie names, `null` when the cookie is unusable, `undefined` when absent. */
@@ -22,7 +22,9 @@ export async function accountFromCookieHeader(
 ): Promise<AccountUser | null | undefined> {
   const token = readSessionCookie(cookieHeader);
   if (token === undefined) return undefined;
-  const claims = await verifySessionToken(token, sessionSecret());
+  // The token's own expiry only bounds how long the middleware trusts its role;
+  // here the database decides, on every request.
+  const claims = await readSessionToken(token, sessionSecret());
   if (!claims) return null;
   return findSessionUser(claims.sessionId);
 }

@@ -5,7 +5,7 @@
  * for the home page's top-right pill. Renders nothing while accounts are off.
  */
 import Link from 'next/link';
-import { LogIn, LogOut, UserRound } from 'lucide-react';
+import { LogIn, LogOut, UserRound, Users } from 'lucide-react';
 
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PERMISSIONS, roleCan } from '@/lib/accounts/policy';
 import { accountStrings, roleLabel } from '@/lib/accounts/strings';
 import { logOut, useAccount } from '@/lib/accounts/use-account';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -24,7 +25,7 @@ const PILL_BUTTON =
 
 export function AccountMenu({ onOpen }: { onOpen?: () => void }) {
   const { locale } = useI18n();
-  const { loading, enabled, account } = useAccount();
+  const { loading, enabled, viewer, account } = useAccount();
   const strings = accountStrings(locale);
 
   if (loading || !enabled) return null;
@@ -64,6 +65,14 @@ export function AccountMenu({ onOpen }: { onOpen?: () => void }) {
             <div className="text-xs text-muted-foreground">{roleLabel(strings, account.role)}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {!viewer && roleCan(account.role, PERMISSIONS.usersManage) && (
+            <DropdownMenuItem asChild className="cursor-pointer gap-2">
+              <Link href="/admin/users">
+                <Users className="w-3.5 h-3.5" />
+                <span>{strings.manageUsers}</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem className="cursor-pointer gap-2" onSelect={() => void logOut()}>
             <LogOut className="w-3.5 h-3.5" />
             <span>{strings.logOut}</span>

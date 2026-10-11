@@ -4,17 +4,19 @@
  * Off by default, so without `OPENMAIC_ACCOUNTS_ENABLED=true` the server
  * behaves exactly as upstream.
  */
-import { ACCOUNTS_ENABLED_ENV, PASSWORD_MIN_LENGTH, USERNAME_PATTERN } from '@/lib/accounts/policy';
+import {
+  ACCOUNTS_ENABLED_ENV,
+  PASSWORD_MIN_LENGTH,
+  USERNAME_PATTERN,
+  accountsEnabled,
+} from '@/lib/accounts/policy';
 
 import { SESSION_SECRET_ENV, SESSION_SECRET_MIN_LENGTH, sessionSecret } from './session-token';
 
 export const ADMIN_USERNAME_ENV = 'OPENMAIC_ADMIN_USERNAME';
 export const ADMIN_PASSWORD_ENV = 'OPENMAIC_ADMIN_PASSWORD';
 
-export function accountsEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  const value = env[ACCOUNTS_ENABLED_ENV]?.trim().toLowerCase();
-  return value === 'true' || value === '1';
-}
+export { accountsEnabled };
 
 /**
  * Throws on a configuration the server must not start with, like the other

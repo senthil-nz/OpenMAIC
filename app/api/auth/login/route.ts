@@ -8,9 +8,9 @@ import { PASSWORD_MAX_LENGTH, type AccountSummary } from '@/lib/accounts/policy'
 import { accountsEnabled } from '@/lib/server/accounts/bootstrap';
 import { decoyPasswordHash, verifyPassword } from '@/lib/server/accounts/password';
 import {
+  issueSessionToken,
   sessionSecret,
   sessionSetCookie,
-  signSessionToken,
 } from '@/lib/server/accounts/session-token';
 import { createSession, findUserWithHash, normalizeUsername } from '@/lib/server/accounts/store';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
   const { user } = found;
   const session = await createSession(user.id);
-  const token = await signSessionToken({ ...session, role: user.role }, sessionSecret());
+  const token = await issueSessionToken(session.sessionId, user.role, sessionSecret());
   const account: AccountSummary = {
     id: user.id,
     username: user.username,

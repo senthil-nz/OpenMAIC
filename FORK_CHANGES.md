@@ -16,6 +16,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet |
 | — | Page translators no longer crash the interface | — | On branch, no PR yet |
 | — | Accounts and roles, stage 2: login | — | On branch, no PR yet |
+| — | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | — | On branch, no PR yet |
 
 ## Merged changes
 
@@ -65,12 +66,35 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 - **Likely conflicts:** upstream edits near the owner identity validation in `instrumentation.ts`, or to the top-right pill in `app/page.tsx`. Keep the blocks marked "Fork-only".
 - **Depends on upstream contracts:** `configureOwnerAuthentication` and `OwnerAuthMethod` in `lib/server/identity/`, `applySchemaMigrations` in `@openmaic/storage/pg-migrations`, `POST /api/identity/claim`. If upstream changes these, `lib/server/accounts/auth-method.ts` and `store.ts` need the matching change.
 
+### Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode
+
+- **Branch:** `claude/project-thread-tz7wg0`, pushed but no PR yet.
+- **What:**
+  - *Enforcement (stage 3).* Every request passes an access gate in `middleware.ts` that reads the role from the signed session cookie and applies one rule table, `lib/accounts/route-policy.ts`. An API route missing from the table is admin-only. Guests cannot create, generate, chat or configure; students view and take part; teachers create and publish; admins also configure models and manage users. Model settings are one site-wide record (`site:settings`) instead of one per owner.
+  - *Public courses and catalogue (stage 4).* A course that is not public can be opened only by a logged-in account. `GET /api/courses` and a catalogue on the home page list the courses the visitor may open; owners and admins get a public/private switch.
+  - *User management (stage 5).* `/admin/users` and `/api/admin/users*`: add accounts, change roles, reset passwords, disable accounts. `/api/admin/courses/[id]` lets an admin change any course's visibility.
+  - *Viewer mode (stage 6).* `OPENMAIC_VIEWER_MODE=true` refuses creation, publishing, settings and user management for every role and starts no background workers.
+- **Session tokens:** the cookie's signed token lives 10 minutes and the gate renews it against the database, so a disabled user, a logout or a role change reaches every route within 10 minutes, and at once on routes that resolve the owner. Changing a role or password, or disabling an account, deletes its sessions.
+- **New environment variables:** `OPENMAIC_VIEWER_MODE`, `OPENMAIC_INTERNAL_URL` (optional).
+- **Files added (fork-owned):** `lib/accounts/route-policy.ts`, `lib/server/accounts/{gate,guard,courses,admin}.ts`, `app/api/auth/{session,course}/route.ts`, `app/api/courses/route.ts`, `app/api/admin/users/route.ts`, `app/api/admin/users/[id]/route.ts`, `app/api/admin/courses/[id]/route.ts`, `app/admin/users/page.tsx`, `components/accounts/course-catalogue.tsx`, `tests/accounts/route-policy.test.ts`
+- **Upstream files changed (each change marked "Fork-only"):**
+  - `middleware.ts`: `next()` takes an optional account pass, plus `applyAccountGate()` called before the access-code check.
+  - `instrumentation.ts`: background workers are skipped in viewer mode.
+  - `lib/persistence/workspace-model-config.ts`: read and save map the owner to the site-wide key when accounts are on.
+  - `app/api/model-config/route.ts` (PUT) and `app/api/model-config/import/route.ts`: a second admin check inside the handler.
+  - `app/page.tsx`: the composer is shown only to roles that may create; the catalogue is added.
+  - `components/settings/index.tsx`: non-admins see only the General section.
+- **Likely conflicts:** `middleware.ts` (upstream may rename it to `proxy.ts`, as Next.js 16 asks: move both marked blocks with it), the top of `HomePage` and the composer block in `app/page.tsx`, the `listed` function in `components/settings/index.tsx`.
+- **After every upstream resync:** new upstream API routes are admin-only until a row is added for them in `lib/accounts/route-policy.ts`. Run `pnpm vitest run tests/accounts`, then check the new routes against the table.
+- **Known limits:** an admin can change any course's visibility but cannot edit or delete a course owned by someone else (upstream's document store is owner-only). Courses made anonymously before accounts were turned on stay with their anonymous owner unless that browser logs in as a teacher or admin, which claims them.
+
 ### Local-only configuration (not committed)
 
 These live only on the local machine (`openmaic.yml`, `.env.local`) and are not in git. Back them up before a resync and re-check them after.
 
 - Ollama Cloud as an LLM provider.
 - Browser voice (Web Speech) as the TTS provider.
+- Accounts switched on, with a locally generated `OPENMAIC_SESSION_SECRET` and the admin username.
 
 ## Resync procedure
 

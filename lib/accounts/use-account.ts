@@ -14,10 +14,12 @@ import type { AccountSummary } from './policy';
 export interface AccountState {
   readonly loading: boolean;
   readonly enabled: boolean;
+  /** A viewer deployment: courses are only shown here, never created or configured. */
+  readonly viewer: boolean;
   readonly account: AccountSummary | null;
 }
 
-const LOADING: AccountState = { loading: true, enabled: false, account: null };
+const LOADING: AccountState = { loading: true, enabled: false, viewer: false, account: null };
 
 let current: AccountState = LOADING;
 let inFlight: Promise<void> | undefined;
@@ -38,10 +40,17 @@ function subscribe(listener: () => void): () => void {
 export function refreshAccount(): Promise<void> {
   inFlight ??= fetch('/api/auth/me', { cache: 'no-store' })
     .then((response) => (response.ok ? response.json() : null))
-    .then((body: { enabled?: boolean; account?: AccountSummary | null } | null) => {
-      publish({ loading: false, enabled: !!body?.enabled, account: body?.account ?? null });
-    })
-    .catch(() => publish({ loading: false, enabled: false, account: null }))
+    .then(
+      (body: { enabled?: boolean; viewer?: boolean; account?: AccountSummary | null } | null) => {
+        publish({
+          loading: false,
+          enabled: !!body?.enabled,
+          viewer: !!body?.viewer,
+          account: body?.account ?? null,
+        });
+      },
+    )
+    .catch(() => publish({ loading: false, enabled: false, viewer: false, account: null }))
     .finally(() => {
       inFlight = undefined;
     });

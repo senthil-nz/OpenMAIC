@@ -172,3 +172,63 @@ export async function deleteSession(sessionId: string): Promise<void> {
   const pool = await db();
   await pool.query('DELETE FROM account_sessions WHERE id = $1', [sessionId]);
 }
+
+export async function listUsers(): Promise<AccountUser[]> {
+  const pool = await db();
+  const { rows } = await pool.query<UserRow>(
+    'SELECT id, username, display_name, role, active FROM account_users ORDER BY username',
+  );
+  return rows.map(toUser);
+}
+
+export async function findUser(id: string): Promise<AccountUser | null> {
+  const pool = await db();
+  const { rows } = await pool.query<UserRow>(
+    'SELECT id, username, display_name, role, active FROM account_users WHERE id = $1',
+    [id],
+  );
+  return rows[0] ? toUser(rows[0]) : null;
+}
+
+/**
+ * Change an account. Whatever changes what the account may do (its role, its
+ * password, being disabled) also ends its sessions, so the change takes effect
+ * at once instead of at the next token renewal.
+ */
+export async function updateUser(
+  id: string,
+  change: {
+    displayName?: string;
+    role?: AccountRole;
+    active?: boolean;
+    passwordHash?: string;
+  },
+): Promise<AccountUser | null> {
+  const pool = await db();
+  const { rows } = await pool.query<UserRow>(
+    `UPDATE account_users
+        SET display_name = COALESCE($2, display_name),
+            role = COALESCE($3, role),
+            active = COALESCE($4, active),
+            password_hash = COALESCE($5, password_hash),
+            updated_at = now()
+      WHERE id = $1
+      RETURNING id, username, display_name, role, active`,
+    [
+      id,
+      change.displayName ?? null,
+      change.role ?? null,
+      change.active ?? null,
+      change.passwordHash ?? null,
+    ],
+  );
+  if (!rows[0]) return null;
+  if (
+    change.role !== undefined ||
+    change.active !== undefined ||
+    change.passwordHash !== undefined
+  ) {
+    await pool.query('DELETE FROM account_sessions WHERE user_id = $1', [id]);
+  }
+  return toUser(rows[0]);
+}

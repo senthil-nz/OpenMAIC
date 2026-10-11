@@ -66,13 +66,22 @@ export async function register(): Promise<void> {
   // (lib/server/legacy-classroom-import.ts). It reads the disk and the
   // database, so it runs in the background, retrying with backoff until it
   // completes: `register` must not wait on it.
+  //
+  // Fork-only (FORK_CHANGES.md): a viewer deployment (OPENMAIC_VIEWER_MODE)
+  // only shows courses, so it starts none of the background work below: no
+  // import, no asset collection, no generation, extraction or agent workers.
+  const { viewerModeEnabled } = await import('@/lib/accounts/route-policy');
+  const viewerMode = viewerModeEnabled();
+  if (viewerMode) console.info('[viewer] Viewer mode is on: background workers are not started.');
   const { startLegacyClassroomImport } = await import('@/lib/server/legacy-classroom-import');
-  const legacyClassroomImport = startLegacyClassroomImport();
+  const legacyClassroomImport = viewerMode
+    ? { stop: async () => {} }
+    : startLegacyClassroomImport();
 
   // Imported dynamically so the Edge bundle never pulls in `pg`.
   const { startAssetCollectorSchedule } =
     await import('@/lib/persistence/asset-collector-schedule');
-  const assetSchedule = startAssetCollectorSchedule();
+  const assetSchedule = viewerMode ? undefined : startAssetCollectorSchedule();
 
   // Warn-first boot-time validation of model routing config (MODEL_ROUTES,
   // DEFAULT_MODEL, <PREFIX>_MODELS). Cheap and non-throwing: broken config
@@ -99,7 +108,7 @@ export async function register(): Promise<void> {
     // the agent runtime being enabled. It only installs a timer; its tables
     // are provisioned by the first scan.
     const { startGenerationRunner } = await import('@/lib/server/generation/run/runner');
-    generationRunner = startGenerationRunner();
+    if (!viewerMode) generationRunner = startGenerationRunner();
   } catch (error) {
     console.error('[instrumentation] Generation runner startup failed', error);
   }
@@ -107,7 +116,7 @@ export async function register(): Promise<void> {
     // Uploaded materials are extracted in the background from their upload
     // on (lib/server/materials/extraction.ts), wherever uploads are served.
     const { isServerPersistenceConfigured } = await import('@/lib/config/feature-flags');
-    if (isServerPersistenceConfigured()) {
+    if (isServerPersistenceConfigured() && !viewerMode) {
       const { startOwnerMaterialExtractor } = await import('@/lib/server/materials/extraction');
       materialExtractor = startOwnerMaterialExtractor();
     }
@@ -116,7 +125,7 @@ export async function register(): Promise<void> {
   }
   try {
     const { isAgentRuntimeConfigured } = await import('@/lib/config/feature-flags');
-    if (isAgentRuntimeConfigured()) {
+    if (isAgentRuntimeConfigured() && !viewerMode) {
       // One dedicated LISTEN connection per application instance. The HTTP
       // SSE routes and the runner share its in-process fanout registry; it is
       // not a pool client and never scales with the number of streams.
