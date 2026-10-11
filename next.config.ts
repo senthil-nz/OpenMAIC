@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_PI_CHAT_ENABLED: process.env.NEXT_PUBLIC_PI_CHAT_ENABLED ?? '',
   },
   output: 'standalone',
+  // Fork-only (FORK_CHANGES.md): `pnpm viewer:build --target folder` builds
+  // into its own directory, so it never replaces the `.next` a running
+  // authoring server on this checkout is serving from.
+  ...(process.env.OPENMAIC_DIST_DIR ? { distDir: process.env.OPENMAIC_DIST_DIR } : {}),
   outputFileTracingIncludes: {
     '/*': [
       'lib/server/agent-runtime/import-pptx-worker.mjs',
@@ -25,6 +29,11 @@ const nextConfig: NextConfig = {
       // Docker (Alpine/musl) deployments. Force-include every sharp-libvips
       // native lib dir.
       'node_modules/.pnpm/@img+sharp-libvips-*/node_modules/@img/sharp-libvips-*/lib/**',
+      // Fork-only (FORK_CHANGES.md): the embedded viewer database. PGlite
+      // loads its WebAssembly build and data image from disk beside its entry
+      // module, which the tracer does not follow.
+      'node_modules/@electric-sql/pglite/dist/*.{js,cjs,wasm,data}',
+      'node_modules/@electric-sql/pglite/package.json',
     ],
   },
   typescript: {
@@ -49,6 +58,9 @@ const nextConfig: NextConfig = {
     // egress cannot resolve their SDK in the shipped deployment.
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
+    // Fork-only (FORK_CHANGES.md): loaded from node_modules at run time, only
+    // by a viewer on the embedded database (DATABASE_URL=pglite:...).
+    '@electric-sql/pglite',
   ],
   experimental: {
     proxyClientMaxBodySize: '200mb',

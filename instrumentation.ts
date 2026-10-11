@@ -44,6 +44,20 @@ export async function register(): Promise<void> {
     warnIfAccessCodeIsUnset(process.env.ACCESS_CODE);
   }
 
+  // Fork-only (FORK_CHANGES.md): a viewer on the embedded database
+  // (DATABASE_URL=pglite:...) opens it and imports a new content snapshot
+  // here, and this one waits: the server must not serve a library that is
+  // half imported. Before the admin seed below, so the snapshot's accounts
+  // are in place when it looks for an admin. A no-op on PostgreSQL.
+  try {
+    const { prepareEmbeddedViewerDatabase } = await import('@/lib/server/viewer/embedded-boot');
+    await prepareEmbeddedViewerDatabase();
+  } catch (error) {
+    const { exitOnBootFailure } = await import('@/lib/server/boot-failure');
+    await exitOnBootFailure(error);
+    throw error;
+  }
+
   // Fork-only (FORK_CHANGES.md): the first admin account, created in the
   // background from the environment when accounts are on and none exists.
   const { seedFirstAdmin } = await import('@/lib/server/accounts/bootstrap');
@@ -196,6 +210,10 @@ export async function register(): Promise<void> {
             await import('@/lib/persistence/server-provider');
           const { pool } = await getServerPersistenceProvider(connectionString);
           await pool.end();
+          // Fork-only (FORK_CHANGES.md): the embedded viewer database is
+          // shared by every pool of the process and closed once, here.
+          const { closeEmbeddedDatabase } = await import('@/lib/persistence/embedded-database');
+          await closeEmbeddedDatabase();
         } catch (error) {
           console.error('[instrumentation] Persistence pool shutdown failed', error);
         }
@@ -286,6 +304,9 @@ async function validateBootConfiguration(): Promise<void> {
   const { assertAccountsConfiguration, registerAccountAuthentication } =
     await import('@/lib/server/accounts/bootstrap');
   runConfigurationCheck(assertAccountsConfiguration);
+  // Fork-only (FORK_CHANGES.md): the embedded database is for viewers only.
+  const { assertEmbeddedDatabaseConfiguration } = await import('@/lib/server/viewer/embedded-boot');
+  runConfigurationCheck(assertEmbeddedDatabaseConfiguration);
   await registerAccountAuthentication();
 
   const { validateOwnerIdentityConfiguration } = await import('@/lib/server/identity/registry');

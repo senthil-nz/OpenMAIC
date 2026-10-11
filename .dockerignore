@@ -1,5 +1,10 @@
 # dependencies
 node_modules
+# Fork-only (FORK_CHANGES.md): the pattern above matches the root directory
+# only. On a machine where `pnpm install` has run, the workspace packages'
+# own node_modules (host links) were copied over the ones the image installed
+# and `pnpm run build:packages` failed with ERR_MODULE_NOT_FOUND.
+**/node_modules
 .pnpm-store
 
 # build output

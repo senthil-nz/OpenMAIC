@@ -1,0 +1,36 @@
+# Fork-only (FORK_CHANGES.md): a viewer deployment. See VIEWER_DEPLOYMENT.md.
+#
+# One container and no database service: courses live in an embedded database
+# in the `openmaic-viewer-data` volume. Content arrives as a snapshot file
+# exported from the authoring deployment (`pnpm viewer:export`): put it in
+# ./snapshot/viewer-snapshot.ndjson.gz and restart the container. Learner
+# progress, chat history and logins stay in the volume across updates.
+#
+# The image is built on the authoring machine with `pnpm viewer:build` and
+# loaded here with `docker load -i openmaic-viewer-image.tar`.
+name: openmaic-viewer
+
+services:
+  viewer:
+    image: ${OPENMAIC_VIEWER_IMAGE:-openmaic-viewer:latest}
+    restart: unless-stopped
+    ports:
+      - '${OPENMAIC_PUBLISH_ADDRESS:-0.0.0.0}:${OPENMAIC_PORT:-3000}:3000'
+    env_file:
+      # OPENMAIC_SESSION_SECRET (required), ACCESS_CODE and model provider keys.
+      - .env
+    environment:
+      # Set here, after env_file, so a stray value in .env cannot turn a
+      # viewer into something else.
+      - DATABASE_URL=pglite:/app/data/viewer-db
+      - OPENMAIC_VIEWER_MODE=true
+      - OPENMAIC_ACCOUNTS_ENABLED=true
+      - OPENMAIC_VIEWER_SNAPSHOT=/app/snapshot/viewer-snapshot.ndjson.gz
+    volumes:
+      - openmaic-viewer-data:/app/data
+      - ./snapshot:/app/snapshot:ro
+      # Models for class chat and quiz grading (optional; see VIEWER_DEPLOYMENT.md):
+      # - ./openmaic.yml:/app/openmaic.yml:ro
+
+volumes:
+  openmaic-viewer-data:

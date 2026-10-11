@@ -18,6 +18,7 @@
 import { Client, type Notification } from 'pg';
 
 import { createLogger } from '@/lib/logger';
+import { embeddedDatabaseConfigured } from '@/lib/persistence/embedded-database';
 
 /** The minimal query surface a transaction handle must expose for pg_notify. */
 export interface NotifyQueryable {
@@ -329,6 +330,11 @@ async function connect(generation: number): Promise<void> {
 }
 
 async function ensureConnected(): Promise<void> {
+  // Fork-only (FORK_CHANGES.md): the embedded viewer database is one in-process
+  // session, with no second connection to LISTEN on. Streams keep their
+  // fallback polls, which is all a viewer needs: its content changes only at
+  // an import, before it serves.
+  if (embeddedDatabaseConfigured()) return;
   if (state.stopped || state.client || state.connecting) return state.connecting ?? undefined;
   const generation = ++state.generation;
   state.connecting = connect(generation)

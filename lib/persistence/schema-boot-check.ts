@@ -17,8 +17,9 @@
  * awaited: `register()` must not block on I/O.
  */
 import { verifySchemaMigrations } from '@openmaic/storage/pg-migrations';
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 
+import { createDatabasePool } from '@/lib/persistence/embedded-database';
 import { APP_SCHEMA_STORES } from '@/lib/persistence/schema-stores';
 
 /** Recognized by name, so a refusal thrown by another copy of the storage package counts. */
@@ -32,7 +33,8 @@ export type SchemaCheckPoolFactory = (connectionString: string) => Pool;
 
 export async function startSchemaBootCheck(
   connectionString: string,
-  poolFactory: SchemaCheckPoolFactory = (value) => new Pool({ connectionString: value, max: 1 }),
+  // Fork-only (FORK_CHANGES.md): `pglite:` opens the embedded viewer database.
+  poolFactory: SchemaCheckPoolFactory = (value) => createDatabasePool(value, { max: 1 }),
 ): Promise<void> {
   const pool = poolFactory(connectionString.trim());
   // An idle connection that drops is reported here, not thrown at the process.

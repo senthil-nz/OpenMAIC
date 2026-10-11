@@ -18,6 +18,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stage 2: login | 2026-10-11 | Merged |
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | 2026-10-11 | Merged |
 | [#4](https://github.com/senthil-nz/OpenMAIC/pull/4) | Token usage is shown to admins only | 2026-10-11 | Merged |
+| — | Viewer deployment on an embedded database, with content snapshots | — | This PR |
 
 ## Merged changes
 
@@ -93,6 +94,38 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 - **What:** with accounts on, the token usage dashboard in Settings > General is rendered only for an admin. Its data route was already admin-only, so students and teachers saw a panel that could not load.
 - **Files:** `components/settings/general-settings.tsx`
 - **Likely conflicts:** upstream edits around `<UsageDashboard />` in that file.
+
+### Viewer deployment on an embedded database, with content snapshots
+
+- **PR:** this pull request (branch `feat/viewer-embedded-database`).
+- **What:** a public viewer server that needs no database service, fed from a local authoring server. Operator guide: [VIEWER_DEPLOYMENT.md](VIEWER_DEPLOYMENT.md).
+  - *Embedded database.* `DATABASE_URL=pglite:<directory>` runs PostgreSQL inside the server process (PGlite) with its data in a directory. No SQL is translated: every store issues the PostgreSQL it already issues, and upstream's own test suite runs those stores on PGlite. PGlite is one session, so `EmbeddedPool` gives it the surface of a node-postgres pool and takes turns on it: a checked-out client holds the session until released, and a statement that waits longer than `OPENMAIC_EMBEDDED_DB_LOCK_WAIT_MS` fails instead of hanging. Refused at boot unless `OPENMAIC_VIEWER_MODE=true` and `OPENMAIC_ACCOUNTS_ENABLED=true`.
+  - *Content snapshots.* `pnpm viewer:export` writes the course content of the authoring PostgreSQL database to `viewer-snapshot.ndjson.gz`, read in one REPEATABLE READ transaction. A viewer imports the file as it starts, before it serves, in one transaction. The import replaces content tables and never writes the viewer's own tables, so learner progress, chat history and login sessions survive every update. A snapshot is imported once, and is refused (the viewer keeps what it had) when it is incomplete or from a different schema version.
+  - *Distribution.* `pnpm viewer:build` writes `dist/viewer/`: the Docker image as a tar file, a compose file, the snapshot and an env example. `--target folder` builds a `node server.js` folder instead, into its own build directory so it does not replace `.next`.
+- **Which tables a snapshot carries** is one list, `SNAPSHOT_TABLES` in `lib/server/viewer/snapshot-format.ts`, with how each meets the viewer's rows (`replace`, `merge`, `insert-missing`). `VIEWER_OWNED_TABLES` in the same file lists what an import refuses to write. `workspace_model_config` is deliberately not carried: it holds keys sealed with the authoring deployment's instance secret.
+- **New environment variables:** `OPENMAIC_VIEWER_SNAPSHOT` (default `data/viewer-snapshot.ndjson.gz`), `OPENMAIC_EMBEDDED_DB_LOCK_WAIT_MS` (default 60000), `OPENMAIC_DIST_DIR` (build only, set by `viewer:build`).
+- **New database table (viewer only):** `fork_viewer_snapshots`, the log of imported snapshots. No upstream table is changed.
+- **Files added (fork-owned):** `lib/persistence/embedded-database.ts`, `lib/server/viewer/{embedded-boot,snapshot-format,snapshot-export,snapshot-import}.ts`, `scripts/viewer-export.ts`, `scripts/viewer-build.mjs`, `docker-compose.viewer.yml`, `viewer.env.example`, `VIEWER_DEPLOYMENT.md`, `tests/viewer/{embedded-database,snapshot}.test.ts`
+- **Upstream files changed (each change marked "Fork-only"):**
+  - `lib/persistence/server-provider.ts` and `lib/persistence/schema-boot-check.ts`: the default pool factory is `createDatabasePool`, which opens a node-postgres pool for anything but `pglite:`. `Pool` is now a type-only import in both.
+  - `lib/server/agent-runtime/event-notify-bus.ts`: `ensureConnected` returns at once on the embedded database (no second connection to LISTEN on; streams keep their fallback polls).
+  - `instrumentation.ts`: three blocks. The embedded database is opened and a new snapshot imported before the admin seed, and `register` waits for it; the configuration check beside the accounts check; the embedded database is closed at shutdown.
+  - `next.config.ts`: `@electric-sql/pglite` in `serverExternalPackages` and its runtime files in `outputFileTracingIncludes`; `distDir` from `OPENMAIC_DIST_DIR` when set.
+  - `.dockerignore`: `**/node_modules` added. The existing `node_modules` line matches the root directory only, so on a machine where `pnpm install` had run, the workspace packages' own `node_modules` (host links) were copied over the ones the image installed and `pnpm run build:packages` failed with `ERR_MODULE_NOT_FOUND`. This also fixes `docker compose up --build` from such a checkout.
+  - `.env.example`: one block at the end.
+  - `package.json`, `pnpm-lock.yaml`: `@electric-sql/pglite` moved from `devDependencies` to `dependencies` (same version); scripts `viewer:export` and `viewer:build`.
+- **Likely conflicts on resync:**
+  - `instrumentation.ts`: upstream edits around the accounts check or the shutdown hook. Keep the three marked blocks.
+  - `lib/persistence/server-provider.ts`, `schema-boot-check.ts`: upstream edits to the default `poolFactory` parameter or the `pg` import.
+  - `next.config.ts`: upstream additions to the same two lists. Keep both.
+  - `package.json` / `pnpm-lock.yaml`: if upstream bumps `@electric-sql/pglite`, take its version and keep the package under `dependencies`.
+- **After every upstream resync:**
+  - Run `pnpm vitest run tests/viewer`.
+  - A new upstream table that holds course content must be added to `SNAPSHOT_TABLES`, or viewers will not receive it. Compare the tables of a migrated database with the list.
+  - A new place that opens a database connection from `DATABASE_URL` (`new Pool(` or `new Client(` under `lib/` or `app/`) must go through `createDatabasePool`, or be skipped on a viewer.
+  - Rebuild the viewer distribution and export a fresh snapshot from the same release: a snapshot from a different schema version is refused.
+- **Depends on upstream contracts:** the schema migration records in `openmaic_schema_migrations` (`@openmaic/storage/pg-migrations`), `getServerPersistenceProvider`'s `poolFactory` parameter, the `isPool` test in `pg-migrations.ts` (it reads `totalCount`, `idleCount` and `waitingCount`), and upstream continuing to run its stores on PGlite in tests.
+- **Known limits:** the embedded database serves one statement or transaction at a time; learner data on the viewer does not flow back to the authoring server; private courses and password hashes are in the snapshot; media kept in S3 and courses still stored as files in `data/classrooms` are not.
 
 ## Unmerged work
 
