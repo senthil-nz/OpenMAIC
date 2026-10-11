@@ -586,6 +586,7 @@ async function transcribeAzureASR(
     ru: 'ru-RU',
     ar: 'ar-SA',
     hi: 'hi-IN',
+    ta: 'ta-IN',
   };
 
   if (config.language && config.language !== 'auto') {
