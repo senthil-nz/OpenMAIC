@@ -17,7 +17,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Page translators no longer crash the interface | 2026-10-11 | Merged |
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stage 2: login | 2026-10-11 | Merged |
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | 2026-10-11 | Merged |
-| — | Token usage is shown to admins only | — | This PR |
+| [#4](https://github.com/senthil-nz/OpenMAIC/pull/4) | Token usage is shown to admins only | 2026-10-11 | Merged |
 
 ## Merged changes
 
@@ -89,7 +89,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 
 ### #4 Token usage is shown to admins only
 
-- **PR:** this pull request (branch `claude/project-thread-tz7wg0`).
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/4 (change commit `1624917`)
 - **What:** with accounts on, the token usage dashboard in Settings > General is rendered only for an admin. Its data route was already admin-only, so students and teachers saw a panel that could not load.
 - **Files:** `components/settings/general-settings.tsx`
 - **Likely conflicts:** upstream edits around `<UsageDashboard />` in that file.
