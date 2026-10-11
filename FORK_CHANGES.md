@@ -18,7 +18,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stage 2: login | 2026-10-11 | Merged |
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | 2026-10-11 | Merged |
 | [#4](https://github.com/senthil-nz/OpenMAIC/pull/4) | Token usage is shown to admins only | 2026-10-11 | Merged |
-| — | Viewer deployment on an embedded database, with content snapshots | — | This PR |
+| [#5](https://github.com/senthil-nz/OpenMAIC/pull/5) | Viewer deployment on an embedded database, with content snapshots | — | Open |
 
 ## Merged changes
 
@@ -95,9 +95,9 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 - **Files:** `components/settings/general-settings.tsx`
 - **Likely conflicts:** upstream edits around `<UsageDashboard />` in that file.
 
-### Viewer deployment on an embedded database, with content snapshots
+### #5 Viewer deployment on an embedded database, with content snapshots
 
-- **PR:** this pull request (branch `feat/viewer-embedded-database`).
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/5 (branch `feat/viewer-embedded-database`), open.
 - **What:** a public viewer server that needs no database service, fed from a local authoring server. Operator guide: [VIEWER_DEPLOYMENT.md](VIEWER_DEPLOYMENT.md).
   - *Embedded database.* `DATABASE_URL=pglite:<directory>` runs PostgreSQL inside the server process (PGlite) with its data in a directory. No SQL is translated: every store issues the PostgreSQL it already issues, and upstream's own test suite runs those stores on PGlite. PGlite is one session, so `EmbeddedPool` gives it the surface of a node-postgres pool and takes turns on it: a checked-out client holds the session until released, and a statement that waits longer than `OPENMAIC_EMBEDDED_DB_LOCK_WAIT_MS` fails instead of hanging. Refused at boot unless `OPENMAIC_VIEWER_MODE=true` and `OPENMAIC_ACCOUNTS_ENABLED=true`.
   - *Content snapshots.* `pnpm viewer:export` writes the course content of the authoring PostgreSQL database to `viewer-snapshot.ndjson.gz`, read in one REPEATABLE READ transaction. A viewer imports the file as it starts, before it serves, in one transaction. The import replaces content tables and never writes the viewer's own tables, so learner progress, chat history and login sessions survive every update. A snapshot is imported once, and is refused (the viewer keeps what it had) when it is incomplete or from a different schema version.
