@@ -10,6 +10,12 @@
   Get an immersive, multi-agent learning experience in just one click
 </p>
 
+<!-- fork-notice:start (fork-only block; keep it when merging upstream) -->
+> [!NOTE]
+> **This is a fork** of [THU-MAIC/OpenMAIC](https://github.com/THU-MAIC/OpenMAIC). It adds a Tamil (தமிழ், `ta-IN`) interface locale with Tamil browser narration.
+> Every fork-only change, the files it touches and how to resync with upstream are listed in [FORK_CHANGES.md](./FORK_CHANGES.md).
+<!-- fork-notice:end -->
+
 <p align="center">
   <a href="https://lcn6dqn3m0yr.feishu.cn/wiki/CkQSwHFdzibQFvkGzwPcmUOfnXg"><img src="https://img.shields.io/badge/%F0%9F%93%98%20User%20Guide-v1.0.0%20%C2%B7%20English-4F8EF7?style=for-the-badge" alt="v1.0.0 User Guide (English)"/></a>
   &nbsp;&nbsp;
