@@ -14,6 +14,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | [#1](https://github.com/senthil-nz/OpenMAIC/pull/1) | Tamil (`ta-IN`) interface locale | 2026-10-11 | Merged |
 | — | README fork notice and this change log | — | This PR |
 | — | Outline prompt no longer adds a second language to English courses | — | On branch, no PR yet |
+| — | Page translators no longer crash the interface | — | On branch, no PR yet |
 
 ## Merged changes
 
@@ -44,6 +45,13 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 - **What:** the "show emerging tech terms bilingually" rule now applies only when the teaching language is not English, and the language directive may not add a language the user did not ask for.
 - **Files:** `lib/prompts/templates/interactive-outlines/system.md`, `packages/@openmaic/generation/templates/requirements-to-outlines/system.md`, `packages/@openmaic/generation/test/__snapshots__/outline-prompt.test.ts.snap`
 - **Likely conflicts:** upstream edits to either prompt template; regenerate the snapshot after merging.
+
+### Page translators no longer crash the interface
+
+- **Branch:** `claude/project-thread-tz7wg0`, pushed but no PR yet.
+- **What:** the page is marked `translate="no"` / `notranslate` so a browser's page translator leaves the React interface alone, and the Test TTS button label is wrapped in a `<span>`. Before, translating the page caused "NotFoundError: Failed to execute 'insertBefore' on 'Node'" in settings.
+- **Files:** `app/layout.tsx`, `components/settings/tts-settings.tsx`
+- **Likely conflicts:** upstream edits to the `<html>` tag or `metadata` in `app/layout.tsx`. Keep the `translate`/`notranslate` attributes and the `google: 'notranslate'` entry.
 
 ### Local-only configuration (not committed)
 
