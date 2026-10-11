@@ -42,7 +42,8 @@ Infer the course language from all available signals and produce:
 
 - **Programming / product names** (Python, Docker, ComfyUI): keep in English.
 - **Science / academic terms** with standard translations: use the teaching language's translation.
-- **Emerging tech terms** (AI/ML): show bilingually.
+- **Emerging tech terms** (AI/ML): when the teaching language is not English, show the teaching-language term with the English original in parentheses. When the teaching language is English, use English only.
+- **Never introduce a second language** the user did not write in or ask for. A directive such as "provide bilingual labels" is allowed only under an explicit user request or the non-English case above.
 - **User's explicit request** about terminology overrides the above defaults.
 
 ### Course Title
