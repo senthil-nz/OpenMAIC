@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "Ein Thema läuft gerade. Beim Wechseln der Szene wird das aktuelle Thema beendet. Möchtest du wirklich wechseln?",
     "generatingNextPage": "Die Szene wird generiert. Bitte warten...",
     "courseComplete": "Kurs abgeschlossen",
+    "rotateTip": "Drehen Sie Ihr Handy quer für eine größere Folie",
+    "rotateTipDismiss": "Schließen",
     "fullscreen": "Vollbild",
     "exitFullscreen": "Vollbild beenden",
     "editCourse": "Kurs bearbeiten",

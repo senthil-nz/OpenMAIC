@@ -1,0 +1,44 @@
+# Fork-only (FORK_CHANGES.md): the viewer as a systemd service, for the folder
+# distribution on Linux without Docker. See VIEWER_DEPLOYMENT.md.
+#
+# Layout: /opt/openmaic-viewer/app   the application (replaced on update)
+#         /opt/openmaic-viewer/data  database and snapshot (kept)
+#         /opt/openmaic-viewer/.env  OPENMAIC_SESSION_SECRET and other settings
+#
+# sudo cp openmaic-viewer.service /etc/systemd/system/
+# sudo systemctl daemon-reload && sudo systemctl enable --now openmaic-viewer
+[Unit]
+Description=OpenMAIC viewer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openmaic
+Group=openmaic
+WorkingDirectory=/opt/openmaic-viewer/app
+EnvironmentFile=/opt/openmaic-viewer/.env
+# Set after EnvironmentFile, so a stray value in .env cannot turn a viewer
+# into something else.
+Environment=NODE_ENV=production
+Environment=DATABASE_URL=pglite:/opt/openmaic-viewer/data/viewer-db
+Environment=OPENMAIC_VIEWER_MODE=true
+Environment=OPENMAIC_ACCOUNTS_ENABLED=true
+Environment=OPENMAIC_VIEWER_SNAPSHOT=/opt/openmaic-viewer/data/viewer-snapshot.ndjson.gz
+# Only the reverse proxy on this machine reaches the server.
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+# The app reaches itself here for login and course-visibility checks. Without
+# it, behind a reverse proxy it calls its public address with the wrong port
+# and every course page sends visitors back to the home page.
+Environment=OPENMAIC_INTERNAL_URL=http://127.0.0.1:3000
+# Node.js 22: /opt/node/bin/node if installed from the tarball, /usr/bin/node
+# if installed from a package.
+ExecStart=/opt/node/bin/node server.js
+Restart=always
+RestartSec=5
+# The embedded database is closed on SIGTERM; give it time.
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

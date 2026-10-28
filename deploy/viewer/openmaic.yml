@@ -1,0 +1,20 @@
+# Fork-only (FORK_CHANGES.md): model configuration of a viewer deployment.
+#
+# Without one, a viewer has no narration at all: lessons play silently. This
+# one narrates with the voices installed in each visitor's browser (free, no
+# key) and declares no chat model, so class chat and quiz grading are off.
+# To offer those, declare a chat provider and the `llm` slot as in
+# openmaic.example.yml, with its key in the viewer's .env.
+#
+# Folder distribution: /opt/openmaic-viewer/openmaic.yml, with
+# OPENMAIC_CONFIG=/opt/openmaic-viewer/openmaic.yml in .env.
+# Docker distribution: beside docker-compose.yml, mounted by it.
+providers:
+  browser-voice:
+    preset: browser-native-tts
+
+slots:
+  tts: browser-voice
+
+# Visitors may not add providers or keys of their own.
+allowUserKeys: false

@@ -18,7 +18,9 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stage 2: login | 2026-10-11 | Merged |
 | [#3](https://github.com/senthil-nz/OpenMAIC/pull/3) | Accounts and roles, stages 3 to 6: enforcement, catalogue, user management, viewer mode | 2026-10-11 | Merged |
 | [#4](https://github.com/senthil-nz/OpenMAIC/pull/4) | Token usage is shown to admins only | 2026-10-11 | Merged |
-| [#5](https://github.com/senthil-nz/OpenMAIC/pull/5) | Viewer deployment on an embedded database, with content snapshots | — | Open |
+| [#5](https://github.com/senthil-nz/OpenMAIC/pull/5) | Viewer deployment on an embedded database, with content snapshots | 2026-10-11 | Merged |
+| [#6](https://github.com/senthil-nz/OpenMAIC/pull/6) | Viewer: Linux deployment without Docker, narration voices, reverse-proxy fix | 2026-10-28 | Merged |
+| [#7](https://github.com/senthil-nz/OpenMAIC/pull/7) | Classroom layout for phones | 2026-10-28 | Merged |
 
 ## Merged changes
 
@@ -97,7 +99,7 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
 
 ### #5 Viewer deployment on an embedded database, with content snapshots
 
-- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/5 (branch `feat/viewer-embedded-database`), open.
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/5 (merge commit `11a5ba4`, change commit `fae7237`)
 - **What:** a public viewer server that needs no database service, fed from a local authoring server. Operator guide: [VIEWER_DEPLOYMENT.md](VIEWER_DEPLOYMENT.md).
   - *Embedded database.* `DATABASE_URL=pglite:<directory>` runs PostgreSQL inside the server process (PGlite) with its data in a directory. No SQL is translated: every store issues the PostgreSQL it already issues, and upstream's own test suite runs those stores on PGlite. PGlite is one session, so `EmbeddedPool` gives it the surface of a node-postgres pool and takes turns on it: a checked-out client holds the session until released, and a statement that waits longer than `OPENMAIC_EMBEDDED_DB_LOCK_WAIT_MS` fails instead of hanging. Refused at boot unless `OPENMAIC_VIEWER_MODE=true` and `OPENMAIC_ACCOUNTS_ENABLED=true`.
   - *Content snapshots.* `pnpm viewer:export` writes the course content of the authoring PostgreSQL database to `viewer-snapshot.ndjson.gz`, read in one REPEATABLE READ transaction. A viewer imports the file as it starts, before it serves, in one transaction. The import replaces content tables and never writes the viewer's own tables, so learner progress, chat history and login sessions survive every update. A snapshot is imported once, and is refused (the viewer keeps what it had) when it is incomplete or from a different schema version.
@@ -126,6 +128,36 @@ All changes here are fork-only and are not sent upstream. Add a row to the table
   - Rebuild the viewer distribution and export a fresh snapshot from the same release: a snapshot from a different schema version is refused.
 - **Depends on upstream contracts:** the schema migration records in `openmaic_schema_migrations` (`@openmaic/storage/pg-migrations`), `getServerPersistenceProvider`'s `poolFactory` parameter, the `isPool` test in `pg-migrations.ts` (it reads `totalCount`, `idleCount` and `waitingCount`), and upstream continuing to run its stores on PGlite in tests.
 - **Known limits:** the embedded database serves one statement or transaction at a time; learner data on the viewer does not flow back to the authoring server; private courses and password hashes are in the snapshot; media kept in S3 and courses still stored as files in `data/classrooms` are not.
+
+### #6 Viewer: Linux deployment without Docker, narration voices, reverse-proxy fix
+
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/6 (branch `feat/viewer-linux-deploy`)
+- **What:** what the first real viewer deployment (https://learn.studylk.org, a 1 GB GCP VM that also hosts two other sites behind nginx) needed:
+  - *Without Docker.* `pnpm viewer:build --target folder` built on Linux now also writes a systemd service (`deploy/viewer/openmaic-viewer.service`), a Caddy configuration and an nginx site for a server whose nginx already serves other sites. The snapshot goes to `dist/viewer/snapshot/` for both targets. VIEWER_DEPLOYMENT.md has the Ubuntu steps (swap, Node.js, service user, layout under `/opt/openmaic-viewer`) and how to build on Linux from Windows (WSL).
+  - *Narration.* A viewer with no `openmaic.yml` has narration unassigned, so lessons played silently. `deploy/viewer/openmaic.yml` narrates with browser voices (free, no key), declares no chat model and sets `allowUserKeys: false`. The build ships it, `docker-compose.viewer.yml` mounts it, and the folder layout reads it through `OPENMAIC_CONFIG`.
+  - *Reverse proxy.* Behind nginx the account gate called the app's public address with the wrong port for its course-visibility and session checks, so every course page redirected to the home page. The service file and the compose file now set `OPENMAIC_INTERNAL_URL` to the app's own port.
+- **Files added (fork-owned):** `deploy/viewer/{openmaic-viewer.service,Caddyfile,nginx-site.conf,openmaic.yml}`
+- **Files changed (fork-owned, from #5):** `scripts/viewer-build.mjs`, `docker-compose.viewer.yml`, `viewer.env.example`, `VIEWER_DEPLOYMENT.md`
+- **Upstream files changed:** none.
+- **Likely conflicts on resync:** none; every file is fork-owned.
+- **Known limits:** browser voices depend on the visitor's device (a Tamil course needs a Tamil voice installed). The folder build must be made on Linux with a glibc no newer than the server's.
+
+### #7 Classroom layout for phones
+
+- **PR:** https://github.com/senthil-nz/OpenMAIC/pull/7 (branch `feat/viewer-phone-layout`). Plan: https://claude.ai/artifact/UPj32aC3GXeAqyi6rypdkb
+- **What:** on a phone the classroom no longer shows the desktop layout scaled down. Laptops and tablets are unchanged.
+  - *Held upright* (narrower than 640 px): the slide area is exactly one 16:9 slide of the screen's width, with no empty band, and the slide fills its box (`canvasPercentage` 100, as the workbench uses). The discussion bar takes the rest of the height; its teacher and classmate columns become one row of avatars above a full-width speech area. At 375 × 812 the slide grew from about 283 to 345 px wide and the speech text from about 80 to 307 px.
+  - *Held sideways* (shorter than 500 px): the presentation layout without full screen. The slide fills the height, narration shows as subtitles over it, and the toolbar stays shown.
+  - *Tip:* a one-time "Turn your phone sideways for a bigger slide" above the discussion bar when upright, dismissed with a tap and remembered in the browser (`localStorage` key `openmaic.rotateTipDismissed`). Translated in all 13 locales.
+  - *Slide box fix (all screens):* the classroom's slide box used `aspect-[16/9] h-full max-h-full max-w-full`, which keeps the full height when the width runs out first: a tall white card with the slide letterboxed inside. It is now the largest 16:9 box both ways, in CSS (the slide area is a size container, width `min(100cqw, 100cqh * 16/9)`). Where the height runs out first, as on every laptop, the box is identical to before.
+- **The rule:** `lib/hooks/use-phone-layout.ts` (fork-owned) decides portrait, landscape or neither, from two numbers (`PHONE_MAX_WIDTH_PX`, `PHONE_MAX_HEIGHT_PX`). Tests: `tests/hooks/phone-layout.test.ts`.
+- **Upstream files changed (each change marked "Fork-only"):**
+  - `components/edit/PlaybackChromeRoot.tsx`: `usePhoneLayout`; `presentingLayout` (presentation layout, also for a phone held sideways) used for the header, the scene height, the discussion bar wrapper and its `isPresenting` prop, while full screen, controls and keys still follow `isPresenting`; the slide area's height upright; `canvasPercentage` 100 on phones; the tip. New props passed to `Roundtable`: `phonePortrait`, `fullscreenActive`.
+  - `components/roundtable/index.tsx`: props `phonePortrait` and `fullscreenActive`; with `phonePortrait` the root fills its parent, the three columns are a two-row grid, decorations are hidden, the speech bubble is full width and capped to its card (a size container). The toolbar's full-screen button reads `fullscreenActive`.
+  - `components/canvas/canvas-area.tsx`: the slide area is a size container; the classroom's `StageViewport` sizes itself with `cqw`/`cqh`.
+  - `lib/i18n/locales/*.json`: `stage.rotateTip`, `stage.rotateTipDismiss` in all 13 locales.
+- **Likely conflicts on resync:** `PlaybackChromeRoot.tsx` and `roundtable/index.tsx` are large and change often upstream; keep every block marked "Fork-only". If upstream reworks the discussion bar's three columns, redo the phone grid on the new markup. New upstream locale keys near `stage.courseComplete` may touch the same lines.
+- **Known limits:** the course header keeps its desktop height on phones. On a phone the slide card settles into its size over 0.7 s after the page loads (the card's existing `transition-all`). Checked at 375 × 812, 360 × 740 and 812 × 375 in a browser and on a laptop size; not yet on a real phone.
 
 ## Unmerged work
 

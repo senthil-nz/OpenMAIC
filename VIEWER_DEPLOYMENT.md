@@ -70,9 +70,9 @@ Build-time switches (`NEXT_PUBLIC_*`, `ALLOWED_FRAME_ANCESTORS`) are compiled in
 pnpm viewer:build --target folder
 ```
 
-writes `dist/viewer/app/`, which runs with `node server.js`. It contains native modules for the machine that built it, so build it on the same operating system and CPU as the viewer server (a Windows build does not run on Linux). Building needs several GB of RAM; do not build on a low-spec viewer server.
+writes `dist/viewer/app/` (runs with `node server.js`), `snapshot/`, `env.example`, a systemd service file and a Caddy configuration. It contains native modules for the machine that built it, so build it on Linux with the same CPU type as the viewer server and a glibc no newer than the server's (build on Ubuntu 22.04 for a 22.04 or 24.04 server). Building needs several GB of RAM; do not build on a low-spec viewer server. Leave the snapshot out of the build (`--skip-snapshot`) when the build machine cannot reach the authoring database, and export it there with `pnpm viewer:export --out dist/viewer/snapshot/viewer-snapshot.ndjson.gz`.
 
-On Windows the folder build cannot be copied anywhere: its modules are links into this checkout. It stays at `dist/viewer-next/standalone/` and is only good for checking the viewer on the build machine. Use the Docker distribution for a server.
+On Windows, build it inside WSL (Ubuntu): a folder built by Windows itself cannot be copied anywhere, because its modules are links into the checkout. It stays at `dist/viewer-next/standalone/` and is only good for checking the viewer on the build machine.
 
 ## 2. Install the viewer (viewer server, first time)
 
@@ -97,6 +97,8 @@ sudo usermod -aG docker $USER      # log out and in again
 scp -r dist/viewer <user>@<server>:~/openmaic-viewer
 ```
 
+`openmaic.yml` in the distribution directory sets the narration voices; `docker-compose.yml` mounts it. Keep it there: without it lessons play silently (see "Narration, class chat and quiz grading" below).
+
 The log shows the import and then the server is ready:
 
 ```
@@ -107,11 +109,81 @@ The log shows the import and then the server is ready:
 
 The site listens on port 3000 (`OPENMAIC_PORT` changes it). Point your HTTPS reverse proxy at it.
 
-For the folder distribution: copy `env.example` values into the environment (uncomment the "Folder distribution only" block), then run `node server.js` in `app/`. The snapshot is read from `app/data/viewer-snapshot.ndjson.gz` and the database is created in `app/data/viewer-db`.
+### Ubuntu without Docker (small servers such as an e2-micro)
 
-### Class chat and quiz grading (optional)
+Docker costs roughly 100 MB of RAM, which matters on a 1 GB server. The folder distribution runs on Node.js directly, as a systemd service behind Caddy. Layout on the server:
 
-Guests watch courses without any AI model. Logged-in accounts can also use class chat, quiz grading and speech, which call a model. To offer those, put an `openmaic.yml` beside `docker-compose.yml`, uncomment its mount in `docker-compose.yml`, and set the keys it names in `.env`. Without it those features answer with an error and everything else works.
+| Path | Contents |
+|---|---|
+| `/opt/node` | Node.js 22 |
+| `/opt/openmaic-viewer/app` | The application; replaced on each update |
+| `/opt/openmaic-viewer/data` | The embedded database and the snapshot; kept |
+| `/opt/openmaic-viewer/.env` | `OPENMAIC_SESSION_SECRET` and other settings |
+| `/opt/openmaic-viewer/openmaic.yml` | Narration voices (and optional chat models) |
+
+On the server, once:
+
+```bash
+# 2 GB of swap, so a 1 GB server survives a busy moment
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Node.js 22 (the release the distribution was built with)
+curl -fsSLO https://nodejs.org/dist/v22.23.2/node-v22.23.2-linux-x64.tar.xz
+sudo mkdir -p /opt/node && sudo tar -xJf node-v22.23.2-linux-x64.tar.xz -C /opt/node --strip-components=1
+
+# Caddy, for HTTPS (https://caddyserver.com/docs/install#debian-ubuntu-raspbian)
+sudo apt-get install -y caddy
+
+# A user for the service, and its directories
+sudo useradd --system --home /opt/openmaic-viewer --shell /usr/sbin/nologin openmaic
+sudo mkdir -p /opt/openmaic-viewer/data
+```
+
+Pack `dist/viewer/` as one archive (the application's modules are symbolic links; `scp -r` would copy them as separate files and break them) and copy it up, from the build machine:
+
+```bash
+tar -czf openmaic-viewer.tar.gz -C dist viewer
+scp openmaic-viewer.tar.gz <user>@<server>:~
+```
+
+then on the server:
+
+```bash
+tar -xzf openmaic-viewer.tar.gz            # creates ~/viewer
+sudo cp -a ~/viewer/app /opt/openmaic-viewer/app
+sudo cp ~/viewer/snapshot/viewer-snapshot.ndjson.gz /opt/openmaic-viewer/data/
+sudo cp ~/viewer/env.example /opt/openmaic-viewer/.env
+sudo cp ~/viewer/openmaic.yml /opt/openmaic-viewer/openmaic.yml
+sudo nano /opt/openmaic-viewer/.env          # set OPENMAIC_SESSION_SECRET and
+                                             # OPENMAIC_CONFIG=/opt/openmaic-viewer/openmaic.yml
+sudo chown -R openmaic:openmaic /opt/openmaic-viewer
+sudo chmod 600 /opt/openmaic-viewer/.env
+
+sudo cp ~/viewer/openmaic-viewer.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now openmaic-viewer
+journalctl -u openmaic-viewer -f             # shows the import, then ready
+
+# HTTPS: put your domain in the Caddyfile first; its DNS record must point here
+sudo cp ~/viewer/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+```
+
+The service listens on `127.0.0.1:3000` only; Caddy serves the site on ports 80 and 443. Open those two ports in the cloud firewall (on GCP: allow HTTP and HTTPS traffic on the VM).
+
+**A server that already runs nginx for other sites** (ports 80 and 443 taken) uses nginx instead of Caddy: `nginx-site.conf` in the distribution is a site for the viewer's subdomain, and certbot adds its certificate. Change `PORT` (and `OPENMAIC_INTERNAL_URL` with it) in the service file when 3000 is in use, and always run `sudo nginx -t` before reloading, so a mistake never takes the other sites down. The comments at the top of `nginx-site.conf` list the commands.
+
+`OPENMAIC_INTERNAL_URL` in the service file must point at the service's own port. Behind a reverse proxy, the app otherwise calls its public address with the wrong port for its login and course-visibility checks, and every course page sends visitors back to the home page.
+
+To update the content on this layout, copy the new snapshot to `/opt/openmaic-viewer/data/viewer-snapshot.ndjson.gz` and run `sudo systemctl restart openmaic-viewer`. To update the application, replace `/opt/openmaic-viewer/app` with the new `app/` (keep `data/` and `.env`), `chown` it again and restart.
+
+### Narration, class chat and quiz grading
+
+The viewer reads its own `openmaic.yml`: the authoring server's model configuration is not in the snapshot. The one in the distribution narrates lessons with the voices installed in each visitor's browser, which costs nothing and needs no key, and declares no chat model. Without any `openmaic.yml` narration is unassigned and lessons play silently.
+
+Browser voices depend on the visitor's device: a Tamil course needs a Tamil voice there. Android phones usually have one; on Windows add the Tamil speech pack (Settings, Time & language, Language, Tamil).
+
+Logged-in accounts can also use class chat, quiz grading and speech input, which call a chat model. To offer those, declare a provider and the `llm` slot in the viewer's `openmaic.yml` (as in `openmaic.example.yml`), put the key it names in `.env`, and restart. Every chat and graded quiz then spends that provider's quota.
 
 ## 3. Update the content
 
@@ -177,6 +249,8 @@ docker compose start viewer
 | `OPENMAIC_ACCOUNTS_ENABLED=true` | viewer | Logins; viewer mode is enforced by the account gate. |
 | `OPENMAIC_SESSION_SECRET` | viewer | Signs login cookies; 32+ random characters. |
 | `OPENMAIC_VIEWER_SNAPSHOT` | viewer | The snapshot file to import at start. Default `data/viewer-snapshot.ndjson.gz`. |
+| `OPENMAIC_CONFIG` | viewer | The viewer's `openmaic.yml` (narration voices, optional chat models). Set by the compose file's mount; the folder distribution sets it in `.env`. |
+| `OPENMAIC_INTERNAL_URL` | viewer | Where the app reaches itself, `http://127.0.0.1:<PORT>`. Needed behind a reverse proxy; the compose file and the service file set it. |
 | `OPENMAIC_EMBEDDED_DB_LOCK_WAIT_MS` | viewer | How long a statement waits for the embedded database before failing. Default 60000. |
 
 `docker-compose.viewer.yml` sets the first three and the snapshot path for you.

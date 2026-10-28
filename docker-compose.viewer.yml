@@ -26,11 +26,14 @@ services:
       - OPENMAIC_VIEWER_MODE=true
       - OPENMAIC_ACCOUNTS_ENABLED=true
       - OPENMAIC_VIEWER_SNAPSHOT=/app/snapshot/viewer-snapshot.ndjson.gz
+      # The app reaches itself here for login and course-visibility checks.
+      - OPENMAIC_INTERNAL_URL=http://127.0.0.1:3000
     volumes:
       - openmaic-viewer-data:/app/data
       - ./snapshot:/app/snapshot:ro
-      # Models for class chat and quiz grading (optional; see VIEWER_DEPLOYMENT.md):
-      # - ./openmaic.yml:/app/openmaic.yml:ro
+      # Narration voices, and optionally models for class chat and quiz
+      # grading (see VIEWER_DEPLOYMENT.md). Without it lessons play silently.
+      - ./openmaic.yml:/app/openmaic.yml:ro
 
 volumes:
   openmaic-viewer-data:

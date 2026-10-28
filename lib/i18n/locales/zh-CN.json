@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "当前话题正在进行中，切换页面将结束当前话题。确定要切换吗？",
     "generatingNextPage": "场景正在生成，请稍候...",
     "courseComplete": "课程完成",
+    "rotateTip": "将手机横过来，幻灯片会更大",
+    "rotateTipDismiss": "关闭",
     "fullscreen": "全屏",
     "exitFullscreen": "退出全屏",
     "editCourse": "编辑课程",

@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "현재 진행 중인 주제가 있습니다. 장면을 전환하면 현재 주제가 종료됩니다. 계속하시겠습니까?",
     "generatingNextPage": "장면을 생성 중입니다. 잠시 기다려 주세요...",
     "courseComplete": "강좌 완료",
+    "rotateTip": "휴대폰을 가로로 돌리면 슬라이드가 더 커집니다",
+    "rotateTipDismiss": "닫기",
     "fullscreen": "전체화면",
     "exitFullscreen": "전체화면 종료",
     "editCourse": "강좌 편집",

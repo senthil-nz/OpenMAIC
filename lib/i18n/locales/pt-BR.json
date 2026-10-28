@@ -740,6 +740,8 @@
     "confirmSwitchMessage": "Há um tópico em andamento. Trocar de cena vai encerrá-lo. Tem certeza?",
     "generatingNextPage": "A cena está sendo gerada, aguarde...",
     "courseComplete": "Curso concluído",
+    "rotateTip": "Gire o celular para ver o slide maior",
+    "rotateTipDismiss": "Fechar",
     "fullscreen": "Tela cheia",
     "exitFullscreen": "Sair da tela cheia",
     "editCourse": "Editar curso",
