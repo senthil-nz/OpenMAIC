@@ -1,0 +1,8 @@
+# Fork-only (FORK_CHANGES.md): HTTPS in front of the viewer with Caddy, which
+# gets and renews the certificate itself. Replace the domain with yours (its DNS
+# record must point at this server), then:
+#   sudo cp Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+learn.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}

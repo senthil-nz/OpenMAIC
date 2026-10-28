@@ -164,12 +164,16 @@ function main() {
     if (options.target === 'docker') buildDockerImage(out, options.image);
     else ({ app, portable } = buildFolder(out));
   }
-  const snapshotFile =
-    options.target === 'docker'
-      ? path.join(out, 'snapshot', SNAPSHOT_NAME)
-      : path.join(app, 'data', SNAPSHOT_NAME);
+  const snapshotFile = path.join(out, 'snapshot', SNAPSHOT_NAME);
   mkdirSync(path.dirname(snapshotFile), { recursive: true });
   cpSync(path.join(root, 'viewer.env.example'), path.join(out, 'env.example'));
+  // Narration needs a model configuration; the viewer gets its own.
+  cpSync(path.join(root, 'deploy/viewer/openmaic.yml'), path.join(out, 'openmaic.yml'));
+  if (options.target === 'folder') {
+    for (const file of ['openmaic-viewer.service', 'Caddyfile', 'nginx-site.conf']) {
+      cpSync(path.join(root, 'deploy/viewer', file), path.join(out, file));
+    }
+  }
   cpSync(path.join(root, 'VIEWER_DEPLOYMENT.md'), path.join(out, 'VIEWER_DEPLOYMENT.md'));
 
   if (options.snapshot) {
@@ -189,7 +193,10 @@ function main() {
       : [
           `${path.relative(out, app) || '.'}   the application: node server.js` +
             (portable ? '' : ' (this machine only, not for a server)'),
-          `data/${SNAPSHOT_NAME} inside it is the course content, imported at start`,
+          `snapshot/${SNAPSHOT_NAME}   the course content, imported at start`,
+          'openmaic-viewer.service          the systemd service (Linux)',
+          'Caddyfile                        HTTPS in front of it (set your domain)',
+          'nginx-site.conf                  or behind an nginx that serves other sites',
         ];
   writeFileSync(
     path.join(out, 'README.txt'),
@@ -199,6 +206,7 @@ function main() {
       '',
       ...contents,
       'env.example                      copy to .env and set OPENMAIC_SESSION_SECRET',
+      'openmaic.yml                     narration voices (and optional chat models)',
       'VIEWER_DEPLOYMENT.md             how to install and update',
       '',
     ].join('\n'),
