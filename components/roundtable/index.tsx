@@ -97,6 +97,18 @@ interface RoundtableProps {
   readonly onNextSlide?: () => void;
   readonly onWhiteboardClose?: () => void;
   readonly isPresenting?: boolean;
+  /**
+   * Fork-only (FORK_CHANGES.md): a phone held upright. The bar takes the
+   * height its parent gives it, and the three columns become a row of
+   * avatars above a full-width speech area.
+   */
+  readonly phonePortrait?: boolean;
+  /**
+   * Fork-only (FORK_CHANGES.md): whether full screen is really on, for the
+   * toolbar's button. `isPresenting` is also true for the presentation layout
+   * a phone held sideways gets without full screen.
+   */
+  readonly fullscreenActive?: boolean;
   readonly controlsVisible?: boolean;
   readonly onTogglePresentation?: () => void;
   readonly onPresentationInteractionChange?: (active: boolean) => void;
@@ -200,6 +212,8 @@ export function Roundtable({
   onNextSlide,
   onWhiteboardClose,
   isPresenting,
+  phonePortrait = false,
+  fullscreenActive,
   controlsVisible,
   onTogglePresentation,
   onPresentationInteractionChange,
@@ -701,7 +715,7 @@ export function Roundtable({
       onNextSlide={onNextSlide ?? (() => {})}
       onPlayPause={onPlayPause ?? (() => {})}
       onWhiteboardClose={onWhiteboardClose ?? (() => {})}
-      isPresenting={isPresenting}
+      isPresenting={fullscreenActive ?? isPresenting}
       onTogglePresentation={onTogglePresentation}
       showStopDiscussion={showStopButton}
       onStopDiscussion={onStopDiscussion}
@@ -1150,7 +1164,8 @@ export function Roundtable({
   return (
     <div
       className={cn(
-        'h-[192px] w-full flex flex-col relative z-10 transition-all duration-300',
+        phonePortrait ? 'h-full' : 'h-[192px]',
+        'w-full flex flex-col relative z-10 transition-all duration-300',
         isPresenting && !controlsVisible
           ? 'border-t border-transparent bg-transparent backdrop-blur-none'
           : 'border-t border-gray-100 dark:border-gray-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md',
@@ -1166,23 +1181,49 @@ export function Roundtable({
         {toolbar}
       </div>
       {/* ── Interaction area — three-column layout ── */}
-      <div className="flex-1 flex items-stretch min-h-0">
+      {/* Fork-only (FORK_CHANGES.md): on a phone held upright a grid puts the
+          teacher and participant columns side by side in one row, and the
+          speech area under them at full width. */}
+      <div
+        className={cn(
+          'flex-1 min-h-0',
+          phonePortrait
+            ? 'grid grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]'
+            : 'flex items-stretch',
+        )}
+      >
         {/* Left: Teacher identity */}
         <div
           className={cn(
-            'w-[90px] shrink-0 flex flex-col border-r border-gray-100/50 dark:border-gray-700/50 bg-white/40 dark:bg-gray-900/40 overflow-visible relative transition-opacity duration-300',
+            'shrink-0 flex flex-col border-gray-100/50 dark:border-gray-700/50 bg-white/40 dark:bg-gray-900/40 overflow-visible relative transition-opacity duration-300',
+            phonePortrait ? 'row-start-1 col-start-1 border-b px-2' : 'w-[90px] border-r',
             isPresenting && !controlsVisible && 'opacity-0 pointer-events-none',
           )}
         >
           {/* Decorative Element (Top) */}
-          <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-purple-50/50 dark:from-purple-900/10 to-transparent pointer-events-none" />
-          <div className="absolute top-3 inset-x-0 flex flex-col items-center justify-center gap-1 opacity-10 pointer-events-none">
+          <div
+            className={cn(
+              'absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-purple-50/50 dark:from-purple-900/10 to-transparent pointer-events-none',
+              phonePortrait && 'hidden',
+            )}
+          />
+          <div
+            className={cn(
+              'absolute top-3 inset-x-0 flex flex-col items-center justify-center gap-1 opacity-10 pointer-events-none',
+              phonePortrait && 'hidden',
+            )}
+          >
             <BookOpen size={20} className="text-purple-900 dark:text-purple-100" />
             <div className="w-8 h-0.5 bg-purple-900 dark:bg-purple-100 rounded-full" />
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex items-center justify-center gap-3 px-2 min-h-0 pb-1 pt-8">
+          <div
+            className={cn(
+              'flex-1 flex items-center justify-center gap-3 px-2 min-h-0',
+              phonePortrait ? 'py-1' : 'pb-1 pt-8',
+            )}
+          >
             {/* Avatar Group (Left) */}
             <div
               ref={teacherAvatarRef}
@@ -1295,7 +1336,12 @@ export function Roundtable({
         </div>
 
         {/* Center: Interaction stage */}
-        <div className="flex-1 relative mx-3 mb-2">
+        <div
+          className={cn(
+            'relative mb-2',
+            phonePortrait ? 'row-start-2 col-span-2 mx-2 mt-2 min-h-0' : 'flex-1 mx-3',
+          )}
+        >
           {/* End flash banner (Issue 3) */}
           <AnimatePresence>
             {endFlashVisible && (
@@ -1330,7 +1376,13 @@ export function Roundtable({
                 if (isRecording || isProcessing) cancelRecording();
               }
             }}
-            className="relative w-full h-full rounded-[2.5rem] bg-gradient-to-b from-white/40 to-white/80 dark:from-gray-800/40 dark:to-gray-800/80 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05),inset_0_1px_0_0_rgba(255,255,255,0.9)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col justify-center px-6 overflow-hidden group transition-all duration-700 cursor-default"
+            className={cn(
+              'relative w-full h-full rounded-[2.5rem] bg-gradient-to-b from-white/40 to-white/80 dark:from-gray-800/40 dark:to-gray-800/80 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05),inset_0_1px_0_0_rgba(255,255,255,0.9)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col justify-center px-6 overflow-hidden group transition-all duration-700 cursor-default',
+              // Fork-only (FORK_CHANGES.md): a size container on a phone held
+              // upright, so a long speech bubble is capped to this card and
+              // scrolls instead of overflowing it.
+              phonePortrait && '[container-type:size]',
+            )}
           >
             {elementReferencePill && (
               <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2">{referencePill}</div>
@@ -1671,7 +1723,12 @@ export function Roundtable({
                         onPlayPause?.();
                       }}
                       className={cn(
-                        'relative px-4 pt-2 pb-3 rounded-2xl text-[15px] leading-relaxed transition-all border w-[min(420px,calc(100%-3rem))] group/bubble flex flex-col max-h-[110px]',
+                        'relative px-4 pt-2 pb-3 rounded-2xl text-[15px] leading-relaxed transition-all border group/bubble flex flex-col',
+                        // Fork-only (FORK_CHANGES.md): full width and the
+                        // whole speech area's height on a phone held upright.
+                        phonePortrait
+                          ? 'w-full max-h-[calc(100cqh-2rem)]'
+                          : 'w-[min(420px,calc(100%-3rem))] max-h-[110px]',
                         bubbleRole === 'teacher' ? 'pl-4 pr-10' : 'pl-4 pr-10',
                         bubbleRole === 'user'
                           ? 'bg-purple-600/95 dark:bg-purple-500/95 backdrop-blur-sm border-purple-400/40 dark:border-purple-300/40 text-white rounded-br-sm shadow-md shadow-purple-300/30 dark:shadow-purple-800/30'
@@ -1874,7 +1931,10 @@ export function Roundtable({
         {/* Right: Participants area */}
         <div
           className={cn(
-            'w-[140px] shrink-0 flex flex-col py-3 border-l border-gray-100/50 dark:border-gray-700/50 bg-gray-50/30 dark:bg-gray-900/30 overflow-visible transition-opacity duration-300',
+            'shrink-0 flex border-gray-100/50 dark:border-gray-700/50 bg-gray-50/30 dark:bg-gray-900/30 overflow-visible transition-opacity duration-300',
+            phonePortrait
+              ? 'row-start-1 col-start-2 min-w-0 flex-row items-center justify-end gap-2 py-1 pl-3 pr-2 border-b'
+              : 'w-[140px] flex-col py-3 border-l',
             isPresenting && !controlsVisible && 'opacity-0 pointer-events-none',
           )}
         >
@@ -2070,11 +2130,21 @@ export function Roundtable({
           </div>
 
           {/* Divider */}
-          <div className="mx-auto my-1.5 w-8 h-px bg-gray-200 dark:bg-gray-700 opacity-50 shrink-0" />
+          <div
+            className={cn(
+              'bg-gray-200 dark:bg-gray-700 opacity-50 shrink-0',
+              phonePortrait ? 'h-8 w-px' : 'mx-auto my-1.5 w-8 h-px',
+            )}
+          />
 
           {/* User avatar + interaction buttons */}
-          <div className="flex-1 flex items-center justify-center gap-3 px-2 min-h-0">
-            <div className="flex flex-col gap-1.5 shrink-0">
+          <div
+            className={cn(
+              'flex items-center justify-center gap-3 min-h-0',
+              phonePortrait ? 'flex-none px-0' : 'flex-1 px-2',
+            )}
+          >
+            <div className={cn('flex gap-1.5 shrink-0', phonePortrait ? 'flex-row' : 'flex-col')}>
               {isSendCooldown ? (
                 /* Unified cooldown indicator — replaces both buttons with a single dot wave */
                 <div className="flex items-center justify-center w-8 h-8">

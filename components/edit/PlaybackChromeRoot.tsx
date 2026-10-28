@@ -40,6 +40,8 @@ import { loadCursor, saveCursor, type PlaybackCursor } from '@/lib/playback/curs
 import { ActionEngine } from '@/lib/action/engine';
 import { createAudioPlayer } from '@/lib/utils/audio-player';
 import { useDiscussionTTS } from '@/lib/hooks/use-discussion-tts';
+// Fork-only (FORK_CHANGES.md): the phone layouts.
+import { usePhoneLayout } from '@/lib/hooks/use-phone-layout';
 import { useWidgetIframeStore } from '@/lib/store/widget-iframe';
 import type { AudioIndicatorState } from '@/components/roundtable/audio-indicator';
 import type { Action, DiscussionAction, SpeechAction } from '@/lib/types/action';
@@ -56,7 +58,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RotateCw, X } from 'lucide-react';
 import { VisuallyHidden } from 'radix-ui';
 import type { PPTElement } from '@openmaic/dsl';
 import {
@@ -124,6 +126,9 @@ interface PlaybackChromeRootProps {
  * for calling `ref.teardown()` before unmounting this root so SSE and
  * the engine wind down cleanly.
  */
+/** Fork-only (FORK_CHANGES.md): set once the turn-your-phone tip is dismissed. */
+const ROTATE_TIP_STORAGE_KEY = 'openmaic.rotateTipDismissed';
+
 export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackChromeRootProps>(
   function PlaybackChromeRoot(
     {
@@ -237,6 +242,38 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
     const sceneSwitchRequestRef = useRef(0);
     const sceneSwitchConfirmingRef = useRef(false);
     const [isPresenting, setIsPresenting] = useState(false);
+    // Fork-only (FORK_CHANGES.md): on a phone held upright the slide takes its
+    // width and the discussion bar the rest of the height; held sideways the
+    // classroom is laid out as in presentation (subtitles over the slide)
+    // without entering full screen.
+    const phoneLayout = usePhoneLayout();
+    // On a phone every pixel counts: the slide fills its box instead of the
+    // 90% the desktop stage gives it (the workbench does the same).
+    useEffect(() => {
+      if (!phoneLayout) return;
+      const previous = useCanvasStore.getState().canvasPercentage;
+      useCanvasStore.getState().setCanvasPercentage(100);
+      return () => useCanvasStore.getState().setCanvasPercentage(previous);
+    }, [phoneLayout]);
+    // A one-time tip on a phone held upright; dismissing it is remembered in
+    // this browser. Starts hidden so the server render and a dismissed tip
+    // never flash it.
+    const [rotateTipHidden, setRotateTipHidden] = useState(true);
+    useEffect(() => {
+      try {
+        setRotateTipHidden(window.localStorage.getItem(ROTATE_TIP_STORAGE_KEY) === '1');
+      } catch {
+        setRotateTipHidden(false);
+      }
+    }, []);
+    const dismissRotateTip = useCallback(() => {
+      setRotateTipHidden(true);
+      try {
+        window.localStorage.setItem(ROTATE_TIP_STORAGE_KEY, '1');
+      } catch {
+        // Storage refused (private window): the tip stays hidden for this visit.
+      }
+    }, []);
     const [controlsVisible, setControlsVisible] = useState(true);
     const [isPresentationInteractionActive, setIsPresentationInteractionActive] = useState(false);
 
@@ -1677,9 +1714,16 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
     // 192px in playback mode (autonomous hides it). Mode is guaranteed
     // non-'edit' here since the parent Stage unmounts this component
     // when entering Pro mode.
+    // Fork-only (FORK_CHANGES.md): `presentingLayout` is the presentation
+    // layout, which a phone held sideways also gets; full screen, controls
+    // and keyboard handling still follow `isPresenting` alone.
+    const phonePortrait = phoneLayout === 'portrait' && mode === 'playback';
+    const phoneLandscape = phoneLayout === 'landscape' && mode === 'playback';
+    const presentingLayout = isPresenting || phoneLandscape;
     const sceneViewerHeight = (() => {
-      const headerHeight = isPresenting || hideHeader ? 0 : 80;
-      const roundtableHeight = mode === 'playback' && !isPresenting ? 192 : 0;
+      if (phonePortrait) return undefined;
+      const headerHeight = presentingLayout || hideHeader ? 0 : 80;
+      const roundtableHeight = mode === 'playback' && !presentingLayout ? 192 : 0;
       return `calc(100% - ${headerHeight + roundtableHeight}px)`;
     })();
 
@@ -1704,7 +1748,7 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
           {/* Header — playback only. The Pro Switch fires `onEnterProMode`
             (passed by the parent Stage) which awaits our `teardown()`
             before the parent flips mode to 'edit'. */}
-          {!isPresenting && !hideHeader && (
+          {!presentingLayout && !hideHeader && (
             <Header
               currentSceneTitle={
                 currentScene?.title ||
@@ -1725,7 +1769,12 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
             this whole PlaybackChromeRoot out when entering edit mode, so
             no inline branching is needed here. */}
           <div
-            className="overflow-hidden relative flex-1 min-h-0 isolate"
+            className={cn(
+              'overflow-hidden relative isolate',
+              // Fork-only (FORK_CHANGES.md): upright on a phone the slide area
+              // is exactly as tall as a 16:9 slide of the screen's width.
+              phonePortrait ? 'w-full shrink-0 aspect-[16/9]' : 'flex-1 min-h-0',
+            )}
             style={{
               height: sceneViewerHeight,
             }}
@@ -1793,16 +1842,37 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
             />
           </div>
 
+          {/* Fork-only (FORK_CHANGES.md): the turn-your-phone tip. */}
+          {phonePortrait && !rotateTipHidden && (
+            <div className="shrink-0 mx-2 mb-1 flex items-center gap-2 rounded-full bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 text-xs text-purple-700 dark:text-purple-200">
+              <RotateCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1">{t('stage.rotateTip')}</span>
+              <button
+                type="button"
+                onClick={dismissRotateTip}
+                className="-mr-1 rounded-full p-1 hover:bg-purple-100 dark:hover:bg-purple-800/40"
+                aria-label={t('stage.rotateTipDismiss')}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Roundtable Area */}
           {mode === 'playback' && (
             <div
               className={cn(
                 'transition-opacity duration-300',
-                !isPresenting && 'shrink-0',
-                isPresenting && 'absolute inset-x-0 bottom-0 z-20',
+                !presentingLayout && !phonePortrait && 'shrink-0',
+                // Fork-only (FORK_CHANGES.md): the discussion bar takes the
+                // height the slide leaves on a phone held upright.
+                phonePortrait && 'flex-1 min-h-0 flex flex-col',
+                presentingLayout && 'absolute inset-x-0 bottom-0 z-20',
               )}
             >
               <Roundtable
+                phonePortrait={phonePortrait}
+                fullscreenActive={isPresenting}
                 mode={mode}
                 initialParticipants={participants}
                 playbackView={playbackView}
@@ -1945,8 +2015,10 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
                 onPrevSlide={handlePreviousScene}
                 onNextSlide={handleNextScene}
                 onWhiteboardClose={handleWhiteboardToggle}
-                isPresenting={isPresenting}
-                controlsVisible={controlsVisible}
+                isPresenting={presentingLayout}
+                // Fork-only (FORK_CHANGES.md): sideways on a phone there is no
+                // full screen to wake the controls, so they stay shown.
+                controlsVisible={phoneLandscape && !isPresenting ? true : controlsVisible}
                 onTogglePresentation={togglePresentation}
                 onPresentationInteractionChange={setIsPresentationInteractionActive}
                 fullscreenContainerRef={stageRef}

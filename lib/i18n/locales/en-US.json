@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "A topic is currently in progress. Switching scenes will end the current topic. Are you sure?",
     "generatingNextPage": "Scene is being generated, please wait...",
     "courseComplete": "Course complete",
+    "rotateTip": "Turn your phone sideways for a bigger slide",
+    "rotateTipDismiss": "Dismiss",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit Fullscreen",
     "editCourse": "Edit course",

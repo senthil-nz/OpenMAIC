@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "Hay un tema en curso. Cambiar de escena terminará el tema actual. ¿Quieres continuar?",
     "generatingNextPage": "La escena se está generando, espera un momento...",
     "courseComplete": "Curso completado",
+    "rotateTip": "Gira tu teléfono para ver la diapositiva más grande",
+    "rotateTipDismiss": "Cerrar",
     "fullscreen": "Pantalla completa",
     "exitFullscreen": "Salir de pantalla completa",
     "editCourse": "Editar curso",

@@ -112,6 +112,9 @@ export function CanvasArea({
       <div
         className={cn(
           'flex-1 min-h-0 relative overflow-hidden flex items-center justify-center p-2 transition-colors duration-500',
+          // Fork-only (FORK_CHANGES.md): a size container, so the slide box
+          // below can fit itself both ways (cqw/cqh).
+          '[container-type:size]',
           currentScene?.type === 'interactive'
             ? 'bg-blue-50/30 dark:bg-blue-900/10'
             : 'bg-gray-50/30 dark:bg-gray-900/30',
@@ -345,9 +348,16 @@ function StageViewport({
     );
   }
   if (!workbench) {
+    // Fork-only (FORK_CHANGES.md): the largest 16:9 box the slide area holds,
+    // in CSS alone (the area is a size container, see above). The previous
+    // `aspect-[16/9] h-full max-h-full max-w-full` kept the full height when
+    // the width ran out first (a phone held upright): a tall white card with
+    // the slide letterboxed inside. Where the height runs out first, as on a
+    // laptop, the box is the same as before.
     return (
       <div
-        className={cn('aspect-[16/9] h-full max-h-full max-w-full', className)}
+        className={cn('aspect-[16/9]', className)}
+        style={{ width: 'min(100cqw, calc(100cqh * 16 / 9))' }}
         onClick={onClick}
       >
         {children}

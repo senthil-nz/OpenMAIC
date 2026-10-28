@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "現在トピックが進行中です。シーンを切り替えると、現在のトピックが終了します。よろしいですか？",
     "generatingNextPage": "シーンを生成中です。お待ちください...",
     "courseComplete": "コース完了",
+    "rotateTip": "スマートフォンを横向きにするとスライドが大きくなります",
+    "rotateTipDismiss": "閉じる",
     "fullscreen": "全画面表示",
     "exitFullscreen": "全画面表示を終了",
     "editCourse": "コースを編集",

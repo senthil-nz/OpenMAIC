@@ -327,6 +327,8 @@
     "confirmSwitchMessage": "Đang có một chủ đề dở dang. Chuyển cảnh sẽ kết thúc chủ đề đang học. Bạn có chắc không?",
     "generatingNextPage": "Cảnh đang được tạo, vui lòng đợi…",
     "courseComplete": "Đã học xong bài",
+    "rotateTip": "Xoay ngang điện thoại để xem trang chiếu lớn hơn",
+    "rotateTipDismiss": "Đóng",
     "fullscreen": "Toàn màn hình",
     "exitFullscreen": "Thoát toàn màn hình",
     "editCourse": "Sửa bài học",
